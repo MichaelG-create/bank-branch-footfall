@@ -7,7 +7,7 @@ according to :
 - a std_dev_visitor_count (typically 15% of avg_visitor_count )
 """
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import numpy as np
 
@@ -138,11 +138,18 @@ class VisitorCounter:
 if __name__ == "__main__":
 
     Counter = VisitorCounter()
-    date = datetime(2024, 12, 31, 9, 30)
-    visitors = Counter.get_visit_count(date)
-    print(
-        f"This day {date.day}/{date.month}/{date.year}, "
-        f'on {date.strftime("%A")} '
-        f"at {date.hour} o" + "'" + "clock, "
-        f"got {visitors} visitors"
-    )
+
+    # Testing : printing days and hours for a full month
+    # 700 hour testing
+    increment = timedelta(hours=1)
+    date = datetime(2024, 12, 1, 0, 0)
+    for i in range(700):
+        visitors = Counter.get_visit_count(date)
+        print(
+            f"This day {date.day}/{date.month}/{date.year}, "
+            f'on {date.strftime("%A")} '
+            f"at {date.hour} o" + "'" + "clock, "
+            f"got {visitors} visitors"
+        )
+        date += increment
+
