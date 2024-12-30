@@ -53,16 +53,21 @@ class VisitorCounter:
                 )
                 # modulate visits with week_day
                 day_avg_visits = self.get_day_visits(random_visit_count, dt)
-                # modulate visits with hour of the day
-                hour_visits = self.get_hour_visits(day_avg_visits, dt)
+
+                # if we're closed, no need to modulate hour
+                if day_avg_visits == -1:
+                    hour_visits = -1
+                else:
+                    # modulate visits with hour of the day
+                    hour_visits = self.get_hour_visits(day_avg_visits, dt)
 
                 # works bad : only 20% traffic counted
-                if self.is_badly_working(formated_date):
+                if self.is_badly_counting(formated_date):
                     print('bad counting')
                     hour_visits = int(0.2*hour_visits)
             # defective counter : sends -1
             else:
-                hour_visits = -1
+                hour_visits = -10
                 # print('dead counter')
 
         except ValueError as e:
@@ -71,7 +76,7 @@ class VisitorCounter:
         return hour_visits
 
     @staticmethod
-    def is_badly_working(seed_date: int) -> bool:
+    def is_badly_counting(seed_date: int) -> bool:
         """
         random number to see if counter works badly (count only a fraction of the traffic)
         :param seed_date:
@@ -97,22 +102,23 @@ class VisitorCounter:
         """
         Rules for the hours:
         --------------------
-        00:00-09:00 : traffic_fraction = 0
+        00:00-09:00 : traffic_fraction = -1
         09:00-10:00 : traffic_fraction = 20 % * day_avg_visits
         10:00-11:00 : traffic_fraction = 25 % * day_avg_visits
         11:00-12:00 : traffic_fraction = 25 % * day_avg_visits
-        12:00-13:00 : traffic_fraction = 0
+        12:00-13:00 : traffic_fraction = -1
         13:00-14:00 : traffic_fraction = 10 % * day_avg_visits
         14:00-15:00 : traffic_fraction = 10 % * day_avg_visits
         15:00-16:00 : traffic_fraction =  2 % * day_avg_visits
         16:00-17:00 : traffic_fraction =  3 % * day_avg_visits
         17:00-18:00 : traffic_fraction =  5 % * day_avg_visits
-        18:00-00:00 : traffic_fraction = 0
+        18:00-00:00 : traffic_fraction = -1
 
         :param day_avg_visits: visits of the current day
         :param dt: datetime
         :return:
         """
+
         if dt.hour == 9:
             hour_visits = int(day_avg_visits * 0.2)
         elif dt.hour == 10:
@@ -131,7 +137,7 @@ class VisitorCounter:
         elif dt.hour == 17:
             hour_visits = int(day_avg_visits * 0.05)
         else:
-            hour_visits = 0
+            hour_visits = -1
         return hour_visits
 
     @staticmethod
@@ -164,9 +170,9 @@ class VisitorCounter:
         elif dt.weekday() == 4:
             day_avg_visits = random_visit_count * 1.8
         elif dt.weekday() == 5:
-            day_avg_visits = 0
+            day_avg_visits = -1
         elif dt.weekday() == 6:
-            day_avg_visits = 0
+            day_avg_visits = -1
         else:
             raise ValueError("weekday not between 0 and 6!")
         return day_avg_visits
