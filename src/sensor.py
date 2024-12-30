@@ -39,21 +39,58 @@ class VisitorCounter:
         """
         hour_visits = None
 
+        # for the random generations -> concat y,m,d (no hours, we want the same result whatever the hours)
+        formated_date = int(dt.strftime("%Y%m%d")) # %H if we want to have the bad event happening on an hour basis
+
         try:
-            np.random.seed = 42  # for reproducibility
+            # if the counter works
+            if self.is_working(formated_date):
 
-            random_visit_count = np.random.normal(
-                self.avg_visitor_count, self.std_pct * self.avg_visitor_count
-            )
+                # generate random_visit_count (day base)
+                np.random.seed(formated_date)  # for reproducibility
+                random_visit_count = np.random.normal(
+                    self.avg_visitor_count, self.std_pct * self.avg_visitor_count
+                )
+                # modulate visits with week_day
+                day_avg_visits = self.get_day_visits(random_visit_count, dt)
+                # modulate visits with hour of the day
+                hour_visits = self.get_hour_visits(day_avg_visits, dt)
 
-            day_avg_visits = self.get_day_visits(random_visit_count, dt)
-
-            hour_visits = self.get_hour_visits(day_avg_visits, dt)
+                # works bad : only 20% traffic counted
+                if self.is_badly_working(formated_date):
+                    print('bad counting')
+                    hour_visits = int(0.2*hour_visits)
+            # defective counter : sends -1
+            else:
+                hour_visits = -1
+                # print('dead counter')
 
         except ValueError as e:
             print(e)
 
         return hour_visits
+
+    @staticmethod
+    def is_badly_working(seed_date: int) -> bool:
+        """
+        random number to see if counter works badly (count only a fraction of the traffic)
+        :param seed_date:
+        :return: True or False
+        """
+        np.random.seed(seed_date) # reproducibility
+        bad_behavior_rate = 0.005 # greater than 0.0015 test already passed
+        return np.random.random() <= bad_behavior_rate
+
+    @staticmethod
+    def is_working(seed_date: int) -> bool:
+        """
+        random number to see if counter works normally this peculiar day
+        :param seed_date:
+        :return: True or False
+        """
+        np.random.seed(seed_date) # reproducibility
+        malfunction_rate = 0.002
+        return np.random.random() > malfunction_rate
 
     @staticmethod
     def get_hour_visits(day_avg_visits, dt):
@@ -140,10 +177,11 @@ if __name__ == "__main__":
     Counter = VisitorCounter()
 
     # Testing : printing days and hours for a full month
-    # 700 hour testing
+    # 7 000 hour testing
     increment = timedelta(hours=1)
     date = datetime(2024, 12, 1, 0, 0)
-    for i in range(700):
+
+    for i in range(7000):
         visitors = Counter.get_visit_count(date)
         print(
             f"This day {date.day}/{date.month}/{date.year}, "
