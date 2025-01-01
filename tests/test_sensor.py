@@ -9,7 +9,7 @@ module to test module sensor.py
 from datetime import datetime
 
 import unittest
-from src import VisitorCounter
+from src.Sensor.sensor import VisitorCounter
 
 
 class TestVisitorCounter(unittest.TestCase):
