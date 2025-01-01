@@ -13,7 +13,7 @@ from datetime import datetime
 import requests
 
 
-class RenderAPI:  # pylint: disable=R0903
+class API:  # pylint: disable=R0903
     """
     API class used to request the API directly on render.com
     methods : request_api (sends GET request and get JSON response back)
@@ -75,7 +75,7 @@ if __name__ == "__main__":
     GET_ROUTE = "/get_visitor_count"
 
     # create the API object
-    renderAPI = RenderAPI(BASE_URL, GET_ROUTE)
+    renderAPI = API(BASE_URL, GET_ROUTE)
 
     # request API and print JSON response
     renderAPI.request_api(date_str)

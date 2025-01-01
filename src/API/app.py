@@ -10,7 +10,7 @@ e.g. :
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
-from src.Sensor.sensor import VisitorCounter
+from src.API.data_app.sensor import VisitorCounter
 
 app = FastAPI()
 
