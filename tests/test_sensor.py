@@ -6,9 +6,9 @@ module to test module sensor.py
     - method is_badly_working (indirectly)
 """
 
+import unittest
 from datetime import datetime
 
-import unittest
 from src.Sensor.sensor import VisitorCounter
 
 
