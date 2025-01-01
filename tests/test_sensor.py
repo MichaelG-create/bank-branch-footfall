@@ -1,5 +1,5 @@
 """
-module to test module sensor.py
+module to test module counter.py
 - object VisitorCounter
     - method get_visitor_count
     - method is_working (indirectly)
@@ -9,7 +9,7 @@ module to test module sensor.py
 import unittest
 from datetime import datetime
 
-from src.API.data_app.sensor import VisitorCounter
+from src.API.data_app.counter import VisitorCounter
 
 
 class TestVisitorCounter(unittest.TestCase):

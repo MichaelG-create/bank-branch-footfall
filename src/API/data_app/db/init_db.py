@@ -41,7 +41,7 @@ def get_base_traffic(size: Size, location: LocationType) -> int:
 # ----------------------------------------------------------------
 #         Define agency names 'City_#agency_in_the_city'
 # ----------------------------------------------------------------
-class CityNames(Enum):
+class AgencyNames(Enum):
     LYON_1 = "Lyon_1"
     LYON_2 = "Lyon_2"
     LYON_3 = "Lyon_3"
@@ -57,18 +57,18 @@ class CityNames(Enum):
 # ----------------------------------------------------------------
 # Define a dictionary to associate each city with a size and location
 # ----------------------------------------------------------------
-city_details = {
-    CityNames.LYON_1: (Size.SMALL, LocationType.COUNTRYSIDE),
-    CityNames.LYON_2: (Size.MEDIUM, LocationType.MID_SIZED_CITY),
-    CityNames.LYON_3: (Size.BIG, LocationType.METROPOLIS),
-    CityNames.GRENOBLE_1: (Size.MEDIUM, LocationType.COUNTRYSIDE),
-    CityNames.GRENOBLE_2: (Size.BIG, LocationType.MID_SIZED_CITY),
-    CityNames.CHAMBERY_1: (Size.SMALL, LocationType.COUNTRYSIDE),
-    CityNames.CHAMBERY_2: (Size.MEDIUM, LocationType.MID_SIZED_CITY),
-    CityNames.AIX_LES_BAINS_1: (Size.SMALL, LocationType.COUNTRYSIDE),
-    CityNames.LA_BIOLLE_1: (Size.SMALL, LocationType.COUNTRYSIDE),
-    CityNames.COGNIN_1: (Size.SMALL, LocationType.MID_SIZED_CITY),
-    CityNames.LA_MOTTE_SERVOLEX_1: (Size.SMALL, LocationType.MID_SIZED_CITY)
+agency_details = {
+    AgencyNames.LYON_1: (Size.SMALL, LocationType.COUNTRYSIDE),
+    AgencyNames.LYON_2: (Size.MEDIUM, LocationType.MID_SIZED_CITY),
+    AgencyNames.LYON_3: (Size.BIG, LocationType.METROPOLIS),
+    AgencyNames.GRENOBLE_1: (Size.MEDIUM, LocationType.COUNTRYSIDE),
+    AgencyNames.GRENOBLE_2: (Size.BIG, LocationType.MID_SIZED_CITY),
+    AgencyNames.CHAMBERY_1: (Size.SMALL, LocationType.COUNTRYSIDE),
+    AgencyNames.CHAMBERY_2: (Size.MEDIUM, LocationType.MID_SIZED_CITY),
+    AgencyNames.AIX_LES_BAINS_1: (Size.SMALL, LocationType.COUNTRYSIDE),
+    AgencyNames.LA_BIOLLE_1: (Size.SMALL, LocationType.COUNTRYSIDE),
+    AgencyNames.COGNIN_1: (Size.SMALL, LocationType.MID_SIZED_CITY),
+    AgencyNames.LA_MOTTE_SERVOLEX_1: (Size.SMALL, LocationType.MID_SIZED_CITY)
 }
 # ----------------------------------------------------------------
 # create a database to store the agencies characteristics
@@ -79,7 +79,7 @@ conn = duckdb.connect('AgencyDetails.duckdb')
 # Create the table if it doesn't exist
 conn.execute('''
 CREATE TABLE IF NOT EXISTS AgencyDetails (
-    CityName VARCHAR PRIMARY KEY,
+    AgencyName VARCHAR PRIMARY KEY,
     Size VARCHAR,
     LocationType VARCHAR,
     BaseTraffic INTEGER
@@ -87,18 +87,20 @@ CREATE TABLE IF NOT EXISTS AgencyDetails (
 ''')
 
 # Insert data into the table
-for city, (size, location) in city_details.items():
+for agency_name, (size, location) in agency_details.items():
     base_traffic = get_base_traffic(size, location)
     conn.execute('''
-    INSERT OR REPLACE INTO AgencyDetails (CityName, Size, LocationType, BaseTraffic)
+    INSERT OR REPLACE INTO AgencyDetails (AgencyName, Size, LocationType, BaseTraffic)
     VALUES (?, ?, ?, ?)
-    ''', (city.value, size.value, location.value, base_traffic))
+    ''', (agency_name.value, size.value, location.value, base_traffic))
 
 # Commit changes (although DuckDB typically does this automatically)
 conn.commit()
 
 # Query the data to confirm it's inserted
 result = conn.execute("SELECT * FROM AgencyDetails").fetchall()
+column_names = [desc[0] for desc in conn.description]
+print(column_names)
 for row in result:
     print(row)
 

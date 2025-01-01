@@ -3,7 +3,7 @@ Module implementing the Agency class used in the API
 """
 from datetime import datetime
 
-from src.API.data_app.sensor import VisitorCounter
+from src.API.data_app.counter import VisitorCounter
 
 # ----------------------------------------------------------------
 #         Define the agency class
@@ -14,7 +14,7 @@ class Agency:
     - the name of the agency (e.g. 'Lyon_1', 'Lyon_2', etc.)
     - their size ('small', 'medium', 'big'),
     - their location type ('Countryside', 'Mid_sized_city', 'Metropolis')
-    - a traffic_base
+    - a base_traffic
     - a list of 'counter_num' VisitorCounters
     An agency has :
     - method to get the number of visitors for a given counter
@@ -24,20 +24,20 @@ class Agency:
                  name: str,
                  size:str,
                  location_type:str,
-                 traffic_base:int,
+                 base_traffic:int,
                  counter_num:int=1
         ):
         self.name = name
         self.size = size
         self.location_type = location_type
-        self.traffic_base = traffic_base
+        self.base_traffic = base_traffic
         self.counter_num = counter_num
 
         self.counter_list = self.create_counters()
 
     def create_counters(self) -> list[VisitorCounter]:
         """
-        returns a list of counters matching the traffic_base
+        returns a list of counters matching the base_traffic
         :param self:
         :return: list of VisitorCounter, each having its own base traffic
         """
@@ -45,7 +45,7 @@ class Agency:
         traffic_fraction_list = self.create_fractional_range(self.counter_num)
 
         for i in range(self.counter_num):
-            traffic_fraction = int(self.traffic_base * traffic_fraction_list[i])
+            traffic_fraction = int(self.base_traffic * traffic_fraction_list[i])
             list_of_counter.append(VisitorCounter(traffic_fraction))
 
         return list_of_counter
@@ -117,3 +117,12 @@ class Agency:
         except KeyError as e:
             print(f'No VisitorCounter found at all for the store {self.name}')
             print(e)
+
+if __name__ == "__main__":
+    if len(sys.argv) > 1:
+        date_tok = sys.argv[1].split("-")
+        date_of_visit = date(int(date_tok[0]), int(date_tok[1]), int(date_tok[2]))
+    else:
+        date_of_visit = date(2024, 11, 5)
+
+
