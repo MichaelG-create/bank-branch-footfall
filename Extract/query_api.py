@@ -2,7 +2,7 @@
 Module usable in CLI
 to query the API directly on render.com here:
 (example of request)
-https://du-end2end-project.onrender.com/get_visitor_count?date_time=2025-05-29_09:00
+https://simulated-banking-agency-traffic-counters.onrender.com/get_visitor_count?date_time=2025-05-29_09:00&agency_name=Lyon_1&counter_id=0
 Loop on multiple dates and hours to create analytical reports
 """
 
@@ -51,7 +51,7 @@ def validate_date_format(date_string: str):
             f"Invalid date format: {date_string}. Expected format: YYYY-MM-DD_HH:MM"
         )
 
-    # Vérifie que la date est valide
+    # check that the date is valid
     try:
         datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
     except ValueError as e:

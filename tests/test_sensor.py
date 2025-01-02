@@ -9,7 +9,7 @@ module to test module counter.py
 import unittest
 from datetime import datetime
 
-from src.API.data_app.counter import VisitorCounter
+from API.data_app.counter import VisitorCounter
 
 
 class TestVisitorCounter(unittest.TestCase):
