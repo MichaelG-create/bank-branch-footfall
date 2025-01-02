@@ -12,19 +12,18 @@ from datetime import datetime
 from fastapi import FastAPI, HTTPException
 from src.API.data_app import create_agencies
 
-db_path = 'src/API/data_app/db/AgencyDetails.duckdb'
-table_name = 'AgencyDetails'
+db_path = "src/API/data_app/db/AgencyDetails.duckdb"
+table_name = "AgencyDetails"
 
-agencies_dict = create_agencies(db_path, table_name)     # read everything from the table
+agencies_dict = create_agencies(db_path, table_name)  # read everything from the table
 
 app = FastAPI()
 
 
 @app.get("/get_visitor_count")
-async def get_visitor_count(date_time: str,
-                            agency_name:str,
-                            counter_id:int=-1,
-                            count_unit:str='visitors'):
+async def get_visitor_count(
+    date_time: str, agency_name: str, counter_id: int = -1, count_unit: str = "visitors"
+):
     """
     This road gives back the visitor count for
     - a certain date_time
@@ -42,8 +41,8 @@ async def get_visitor_count(date_time: str,
 
         agency = agencies_dict[agency_name]
         if counter_id > -1:
-            count = agency.get_counter_traffic(date_time_obj,counter_id)
-        else :
+            count = agency.get_counter_traffic(date_time_obj, counter_id)
+        else:
             count = agency.get_all_counter_traffic(date_time_obj)
 
         if count == -10:
@@ -68,10 +67,21 @@ async def get_visitor_count(date_time: str,
                 f"(aperture hours 9-12 13-18) (12:00 and 18:00 closed).",
             )
 
-        if counter_id == -1 :   # all traffic
-            return {"AgencyName": agency_name, "date_time": date_time, "visitor_count": count, 'unit': count_unit}
+        if counter_id == -1:  # all traffic
+            return {
+                "AgencyName": agency_name,
+                "date_time": date_time,
+                "visitor_count": count,
+                "unit": count_unit,
+            }
         else:
-            return {"AgencyName": agency_name, "date_time": date_time, "visitor_count": count, 'unit': count_unit, 'counter_id': counter_id}
+            return {
+                "AgencyName": agency_name,
+                "date_time": date_time,
+                "visitor_count": count,
+                "unit": count_unit,
+                "counter_id": counter_id,
+            }
 
     except ValueError as exc:
         raise HTTPException(

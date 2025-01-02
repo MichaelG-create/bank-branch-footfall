@@ -6,6 +6,7 @@ from enum import Enum
 
 import duckdb
 
+
 # ----------------------------------------------------------------
 #         Define sizes, location_type of agencies
 #         and according average traffic TRAFFIC_DATA
@@ -15,10 +16,12 @@ class Size(Enum):
     MEDIUM = "medium"
     BIG = "big"
 
+
 class LocationType(Enum):
     COUNTRYSIDE = "Countryside"
     MID_SIZED_CITY = "Mid_sized_city"
     METROPOLIS = "Metropolis"
+
 
 # Dictionnaire des moyennes de trafic
 BASE_TRAFFIC_DATA = {
@@ -33,9 +36,11 @@ BASE_TRAFFIC_DATA = {
     (Size.BIG, LocationType.METROPOLIS): 500,
 }
 
+
 # function to get traffic_data
 def get_base_traffic(size: Size, location: LocationType) -> int:
     return BASE_TRAFFIC_DATA.get((size, location), "Data not available")
+
 
 # Dictionnaire des moyennes de trafic
 NUM_COUNTER_DATA = {
@@ -49,6 +54,7 @@ NUM_COUNTER_DATA = {
     (Size.BIG, LocationType.MID_SIZED_CITY): 3,
     (Size.BIG, LocationType.METROPOLIS): 3,
 }
+
 
 # function to get traffic_data
 def get_num_counter(size: Size, location: LocationType) -> int:
@@ -71,6 +77,7 @@ class AgencyNames(Enum):
     COGNIN_1 = "Cognin_1"
     LA_MOTTE_SERVOLEX_1 = "La_Motte_Servolex_1"
 
+
 # ----------------------------------------------------------------
 # Define a dictionary to associate each city with a size and location
 # ----------------------------------------------------------------
@@ -85,8 +92,10 @@ agency_details = {
     AgencyNames.AIX_LES_BAINS_1: (Size.SMALL, LocationType.MID_SIZED_CITY),
     AgencyNames.LA_BIOLLE_1: (Size.SMALL, LocationType.COUNTRYSIDE),
     AgencyNames.COGNIN_1: (Size.MEDIUM, LocationType.COUNTRYSIDE),
-    AgencyNames.LA_MOTTE_SERVOLEX_1: (Size.MEDIUM, LocationType.COUNTRYSIDE)
+    AgencyNames.LA_MOTTE_SERVOLEX_1: (Size.MEDIUM, LocationType.COUNTRYSIDE),
 }
+
+
 # ----------------------------------------------------------------
 # create a database to store the agencies characteristics
 # ----------------------------------------------------------------
@@ -94,7 +103,8 @@ def create_agencies_db(path, table_name):
     conn = duckdb.connect(path)
 
     # Create the table if it doesn't exist
-    conn.execute(f'''
+    conn.execute(
+        f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
             AgencyName VARCHAR PRIMARY KEY,
             Size VARCHAR,
@@ -102,21 +112,26 @@ def create_agencies_db(path, table_name):
             BaseTraffic INTEGER,
             NumCounter INTEGER
             );
-        ''')
+        """
+    )
 
     # Insert data into the table
     for agency_name, (size, location) in agency_details.items():
         base_traffic = get_base_traffic(size, location)
         num_counter = get_num_counter(size, location)
-        conn.execute('''
+        conn.execute(
+            """
     INSERT OR REPLACE INTO AgencyDetails (AgencyName, Size, LocationType, BaseTraffic, NumCounter)
     VALUES (?, ?, ?, ?, ?)
-    ''', (agency_name.value, size.value, location.value, base_traffic, num_counter))
+    """,
+            (agency_name.value, size.value, location.value, base_traffic, num_counter),
+        )
     # Commit changes (although DuckDB typically does this automatically)
     conn.commit()
 
     # Close the connection
     conn.close()
+
 
 def read_agency_db(path, table_name):
     """
@@ -129,10 +144,12 @@ def read_agency_db(path, table_name):
     conn = duckdb.connect(path)
 
     # Fetch all agency data from the table
-    result = conn.execute(f'''
+    result = conn.execute(
+        f"""
         SELECT AgencyName, Size, LocationType, BaseTraffic, NumCounter
         FROM {table_name}
-    ''').fetchall()
+    """
+    ).fetchall()
 
     # Close the connection
     conn.close()
@@ -140,11 +157,11 @@ def read_agency_db(path, table_name):
     # Return the result as a list of dictionaries for easier handling
     agencies = [
         {
-            'AgencyName': row[0],
-            'Size': row[1],
-            'LocationType': row[2],
-            'BaseTraffic': row[3],
-            'NumCounter': row[4]
+            "AgencyName": row[0],
+            "Size": row[1],
+            "LocationType": row[2],
+            "BaseTraffic": row[3],
+            "NumCounter": row[4],
         }
         for row in result
     ]
@@ -152,8 +169,8 @@ def read_agency_db(path, table_name):
     return agencies
 
 
-if __name__ == '__main__':
-    db_path = 'AgencyDetails.duckdb'
-    db_table = 'AgencyDetails'
+if __name__ == "__main__":
+    db_path = "AgencyDetails.duckdb"
+    db_table = "AgencyDetails"
     # create_agencies_db(db_path, db_table)
     print(read_agency_db(db_path, db_table))
