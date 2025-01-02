@@ -4,8 +4,8 @@ Module implementing the Agency class used in the api
 
 from datetime import datetime, timedelta
 
-from API.data_app.counter import VisitorCounter
-from API.data_app.random_seed import RandomSeed
+from api.data_app.counter import VisitorCounter
+from api.data_app.random_seed import RandomSeed
 
 
 # ----------------------------------------------------------------
@@ -92,8 +92,9 @@ class Agency:
         second_half_value = 0.2 / second_half_size if second_half_size > 0 else 0
 
         # Create the list by combining both parts
-        result = ([first_half_value] * first_half_size
-                  + [second_half_value] * second_half_size)
+        result = [first_half_value] * first_half_size + [
+            second_half_value
+        ] * second_half_size
 
         # Round all values to two decimal places
         result = [round(x, 2) for x in result]
@@ -105,13 +106,9 @@ class Agency:
 
         return result
 
-<<<<<<<< HEAD:API/data_app/agency.py
-    def get_counter_traffic(self, date_time: datetime, counter_id: int= 0) -> int | None:
-========
     def get_counter_traffic(
         self, date_time: datetime, counter_id: int = 0
     ) -> int | None:
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/agency.py
         """
         returns the number of visitors
         for a given counter
@@ -131,17 +128,6 @@ class Agency:
         """
         try:
             # initiate the random_seed based on date_time, self.name, counter_id
-<<<<<<<< HEAD:API/data_app/agency.py
-            random_seed = RandomSeed(date_time).generate_seed(self.name,counter_id)
-
-            traffic = self.counter_list[counter_id].get_visit_count(date_time, random_seed=random_seed)
-            print(
-                f'{date_time}, '
-                f'{self.name}, '
-                f'c_id: {counter_id}, '
-                f'seed: {random_seed} '
-                f'traffic is {traffic}')
-========
             random_seed = RandomSeed(date_time).generate_seed(self.name, counter_id)
 
             traffic = self.counter_list[counter_id].get_visit_count(
@@ -154,8 +140,6 @@ class Agency:
                 f"seed: {random_seed} "
                 f"traffic is {traffic}"
             )
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/agency.py
-            # print(f' ')
 
             return traffic
         except KeyError:
@@ -179,16 +163,10 @@ class Agency:
             print(f"No VisitorCounter found at all for the store {self.name}")
             print(e)
 
-<<<<<<<< HEAD:API/data_app/agency.py
-if __name__ == "__main__":
-
-    big_agency_1 = Agency('Lyon_1','big', 'Metropolis',500,3)
-========
 
 if __name__ == "__main__":
 
     big_agency_1 = Agency("Lyon_1", "big", "Metropolis", 500, 3)
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/agency.py
 
     # Testing : printing days and hours for a full month
     # 7 000 hour testing
@@ -196,13 +174,7 @@ if __name__ == "__main__":
     date_time = datetime(2024, 12, 1, 0, 0)
 
     for i in range(37000):
-<<<<<<<< HEAD:API/data_app/agency.py
-        for count_id in range (3):
-        # for count_id in [2] :
-========
         for count_id in range(3):
-            # for count_id in [2] :
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/agency.py
             visitors = big_agency_1.get_counter_traffic(date_time, counter_id=count_id)
             print(
                 f"This day {date_time.strftime("%A")} {date_time.day}/{date_time.month}/{date_time.year}, "

@@ -11,8 +11,6 @@ from datetime import datetime, timedelta
 
 import numpy as np
 
-from API.data_app.random_seed import RandomSeed
-
 
 class VisitorCounter:
     """
@@ -22,9 +20,7 @@ class VisitorCounter:
     std_pct : percentage of std_dev to use with avg_visitor_count in
     """
 
-    def __init__(self,
-                 avg_visitor_count: int = 120,
-                 std_pct: float = 0.15) -> None:
+    def __init__(self, avg_visitor_count: int = 120, std_pct: float = 0.15) -> None:
         """
         simulates a visitor counter
         uses random number generator to do so
@@ -33,7 +29,7 @@ class VisitorCounter:
         self.avg_visitor_count = avg_visitor_count
         self.std_pct = std_pct
 
-    def get_visit_count(self, dt: datetime, random_seed:int=-1):
+    def get_visit_count(self, dt: datetime, random_seed: int = -1):
         """
         Simulates a reproducible visitor count in a bank (typically city center)
         for a given :
@@ -46,7 +42,7 @@ class VisitorCounter:
         hour_visits = None
 
         # if no random_seed given use date
-        if random_seed == -1 :
+        if random_seed == -1:
             # concat y,m,d (not hours, want same result whatever the hours e.g : broken behavior)
             random_seed = int(dt.strftime("%Y%m%d"))
 
@@ -70,8 +66,7 @@ class VisitorCounter:
                     hour_visits = self.get_hour_visits(day_avg_visits, dt)
 
                     # works bad : only 20% traffic counted
-                    if (not hour_visits == -1
-                            and self.is_badly_counting(random_seed)):
+                    if not hour_visits == -1 and self.is_badly_counting(random_seed):
                         print(f"Normally counting : {hour_visits}")
                         hour_visits = int(0.2 * hour_visits)
                         print(f"Bad counting : {hour_visits}")
@@ -79,7 +74,7 @@ class VisitorCounter:
             # defective counter : sends -1
             else:
                 hour_visits = -10
-                print('dead counter')
+                print("dead counter")
 
         except ValueError as e:
             print(e)
@@ -130,15 +125,39 @@ class VisitorCounter:
         """
         # List of multipliers for each hour from 0 to 23
         hour_multipliers = [
-            0, 0, 0, 0, 0, 0, 0, 0, 0,  # 0-8
-            0.2, 0.25, 0.25, 0,  # 9-12
-            0.1, 0.1, 0.02, 0.03, 0.05,  # 13-17
-            0, 0, 0, 0, 0, 0  # 18-23
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,  # 0-8
+            0.2,
+            0.25,
+            0.25,
+            0,  # 9-12
+            0.1,
+            0.1,
+            0.02,
+            0.03,
+            0.05,  # 13-17
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,  # 18-23
         ]
 
         # Default to -1 if hour is not in the range with multipliers
-        multiplier = hour_multipliers[dt.hour] if 0 <= dt.hour < len(hour_multipliers) else -1
-        return int(day_avg_visits * multiplier) if multiplier > 0 else -1 # we're closed
+        multiplier = (
+            hour_multipliers[dt.hour] if 0 <= dt.hour < len(hour_multipliers) else -1
+        )
+        return (
+            int(day_avg_visits * multiplier) if multiplier > 0 else -1
+        )  # we're closed
 
     @staticmethod
     def get_day_visits(random_visit_count, dt):
@@ -164,7 +183,9 @@ class VisitorCounter:
         weekday_multipliers = [1.0, 1.25, 1.3, 1.6, 1.8, 0, 0]
 
         # Get the multiplier for the current weekday
-        multiplier = weekday_multipliers[dt.weekday()] if 0 <= dt.weekday() <= 6 else None
+        multiplier = (
+            weekday_multipliers[dt.weekday()] if 0 <= dt.weekday() <= 6 else None
+        )
 
         if multiplier is None:
             raise ValueError("weekday not between 0 and 6!")

@@ -10,15 +10,8 @@ e.g. :
 from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
-<<<<<<<< HEAD:API/app.py
-from API.data_app import create_agencies
-
-db_path = "API/data_app/db/AgencyDetails.duckdb"
-table_name = "AgencyDetails"
-========
 
 from api.data_app import create_agencies
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/app.py
 
 DB_PATH = "api/data_app/db/AgencyDetails.duckdb"
 TABLE_NAME = "AgencyDetails"
