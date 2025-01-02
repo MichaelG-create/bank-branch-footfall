@@ -1,32 +1,23 @@
 """
-module to test module counter.py
-- object VisitorCounter
-    - method get_visitor_count
-    - method is_working (indirectly)
-    - method is_badly_working (indirectly)
+Module to test module agency.py
+- object Agency
+    - method create_counters
+    - method get_counter_traffic
+    - method get_all_counter_traffic
+    - method create_fractional_range (secondary)
 """
 
 import unittest
 from datetime import datetime
 
-from src.API.data_app.counter import VisitorCounter
+from src.API.data_app.agency import Agency
 
 
-class TestVisitorCounter(unittest.TestCase):
+class TestAgency(unittest.TestCase):
     """
     tests:
     ------
-    -worked days for hours in [9:12, 13:17] : not -1 (opened)
-    -worked days for hours in [0:8, 12, 18:23] : -1 (closed)
-    -not worked_days for all hours: -1 (closed)
-    -badly_working a certain date (detected in logs)
-    -broken a certain date (detected in logs)
-
-    -average of mondays close to average 120 (+- std = 15%) (for 100 days)
-    -average of tuesdays close to average 120*1.25 (+- std = 15%) (for 100 days)
-    -average of wednesdays close to average 120*1.30 (+- std = 15%) (for 100 days)
-    -average of thursdays close to average 120*1.6 (+- std = 15%) (for 100 days)
-    -average of fridays close to average 120*1.8 (+- std = 15%) (for 100 days)
+    -sum (get_counter_traffic by counter) = get_all_counter_traffic
     """
 
     def setUp(self):
@@ -34,7 +25,7 @@ class TestVisitorCounter(unittest.TestCase):
         executed before every test
         :return:
         """
-        self.visitors = VisitorCounter()
+        self.agency = Agency()
 
     def test_weekdays_opened(self):
         """
