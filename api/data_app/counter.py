@@ -33,11 +33,7 @@ class VisitorCounter:
         self.avg_visitor_count = avg_visitor_count
         self.std_pct = std_pct
 
-<<<<<<<< HEAD:API/data_app/counter.py
     def get_visit_count(self, dt: datetime, random_seed:int=-1):
-========
-    def get_visit_count(self, dt: datetime, random_seed: int = -1):
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/counter.py
         """
         Simulates a reproducible visitor count in a bank (typically city center)
         for a given :
@@ -50,11 +46,7 @@ class VisitorCounter:
         hour_visits = None
 
         # if no random_seed given use date
-<<<<<<<< HEAD:API/data_app/counter.py
         if random_seed == -1 :
-========
-        if random_seed == -1:
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/counter.py
             # concat y,m,d (not hours, want same result whatever the hours e.g : broken behavior)
             random_seed = int(dt.strftime("%Y%m%d"))
 
@@ -78,12 +70,8 @@ class VisitorCounter:
                     hour_visits = self.get_hour_visits(day_avg_visits, dt)
 
                     # works bad : only 20% traffic counted
-<<<<<<<< HEAD:API/data_app/counter.py
                     if (not hour_visits == -1
                             and self.is_badly_counting(random_seed)):
-========
-                    if not hour_visits == -1 and self.is_badly_counting(random_seed):
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/counter.py
                         print(f"Normally counting : {hour_visits}")
                         hour_visits = int(0.2 * hour_visits)
                         print(f"Bad counting : {hour_visits}")
@@ -91,11 +79,7 @@ class VisitorCounter:
             # defective counter : sends -1
             else:
                 hour_visits = -10
-<<<<<<<< HEAD:API/data_app/counter.py
                 print('dead counter')
-========
-                print("dead counter")
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/counter.py
 
         except ValueError as e:
             print(e)
@@ -146,7 +130,6 @@ class VisitorCounter:
         """
         # List of multipliers for each hour from 0 to 23
         hour_multipliers = [
-<<<<<<<< HEAD:API/data_app/counter.py
             0, 0, 0, 0, 0, 0, 0, 0, 0,  # 0-8
             0.2, 0.25, 0.25, 0,  # 9-12
             0.1, 0.1, 0.02, 0.03, 0.05,  # 13-17
@@ -156,41 +139,6 @@ class VisitorCounter:
         # Default to -1 if hour is not in the range with multipliers
         multiplier = hour_multipliers[dt.hour] if 0 <= dt.hour < len(hour_multipliers) else -1
         return int(day_avg_visits * multiplier) if multiplier > 0 else -1 # we're closed
-========
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,  # 0-8
-            0.2,
-            0.25,
-            0.25,
-            0,  # 9-12
-            0.1,
-            0.1,
-            0.02,
-            0.03,
-            0.05,  # 13-17
-            0,
-            0,
-            0,
-            0,
-            0,
-            0,  # 18-23
-        ]
-
-        # Default to -1 if hour is not in the range with multipliers
-        multiplier = (
-            hour_multipliers[dt.hour] if 0 <= dt.hour < len(hour_multipliers) else -1
-        )
-        return (
-            int(day_avg_visits * multiplier) if multiplier > 0 else -1
-        )  # we're closed
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/counter.py
 
     @staticmethod
     def get_day_visits(random_visit_count, dt):
@@ -216,13 +164,7 @@ class VisitorCounter:
         weekday_multipliers = [1.0, 1.25, 1.3, 1.6, 1.8, 0, 0]
 
         # Get the multiplier for the current weekday
-<<<<<<<< HEAD:API/data_app/counter.py
         multiplier = weekday_multipliers[dt.weekday()] if 0 <= dt.weekday() <= 6 else None
-========
-        multiplier = (
-            weekday_multipliers[dt.weekday()] if 0 <= dt.weekday() <= 6 else None
-        )
->>>>>>>> fd37bef (Change objects architecture by creating an object RandomSeed (used to generate random count in counter):api/data_app/counter.py
 
         if multiplier is None:
             raise ValueError("weekday not between 0 and 6!")
