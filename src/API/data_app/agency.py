@@ -1,7 +1,10 @@
 """
 Module implementing the Agency class used in the API
 """
+import hashlib
 from datetime import datetime
+
+import numpy as np
 
 from src.API.data_app.counter import VisitorCounter
 
@@ -43,9 +46,18 @@ class Agency:
         """
         list_of_counter=[]
         traffic_fraction_list = self.create_fractional_range(self.counter_num)
+        print(f'{traffic_fraction_list}')
+        print(f'self.name : {self.name}')
+        print(f'self.size : {self.size}')
+        print(f'self.location type : {self.location_type}')
+        print(f'self.base_traffic : {self.base_traffic}')
+        print(f'self.counter_num : {self.counter_num}')
 
         for i in range(self.counter_num):
             traffic_fraction = int(self.base_traffic * traffic_fraction_list[i])
+            print(f'self.base_traffic = {self.base_traffic}')
+            print(f'traffic_fraction_list[{i}] = {traffic_fraction_list[i]}')
+            print(f'traffic_fraction: {traffic_fraction}')
             list_of_counter.append(VisitorCounter(traffic_fraction))
 
         return list_of_counter
@@ -92,16 +104,46 @@ class Agency:
 
     def get_counter_traffic(self, date_time:datetime, counter_id:int)-> int | None:
         """
-        returns the number of visitors for a given counter
+        returns the number of visitors
+        for a given counter
+        in a given agency
+        at a certain date_time
+        WARNING : have to modulate the result with :
+        - counter_id
+        - agency_name
+        Else 2 counter having
+        - the same date_time :
+        - the same fraction of traffic
+        - the same kind of agency (size, location_type)
+        will have the same traffic !
         :param date_time:
         :param counter_id:
         :return:
         """
         try:
-            return self.counter_list[counter_id].get_visit_count(date_time)
+            return self.modulate_traffic_with_agency_and_counter_id(date_time,counter_id)
         except KeyError:
             print(f'counter_id : {counter_id} does not exist, '
                   f'max counter_id for the store {self.name} is {self.counter_num-1}')
+
+    def modulate_traffic_with_agency_and_counter_id(self, date_time:datetime, counter_id:int)-> int | None:
+        # Concatenate parameters (including the string) into a single string
+        params_string = f"{date_time}{counter_id}{self.name}"
+
+        # Hash the concatenated string using SHA256
+        hash_object = hashlib.sha256(params_string.encode())
+        hash_value = int(hash_object.hexdigest(), 16)  # Convert hex to an integer
+
+        # Reduce the hash value to fit within the valid seed range
+        valid_seed = hash_value % (2 ** 32)  # Ensure the seed is between 0 and 2**32 - 1
+
+        # Set the seed for numpy.random
+        np.random.seed(valid_seed)
+
+        modulation_rate = np.random.normal(1, 0.10) # modulate of +/- 10%
+        counter_traffic = self.counter_list[counter_id].get_visit_count(date_time)
+
+        return int(modulation_rate * counter_traffic)
 
     def get_all_counter_traffic(self, date_time:datetime)-> int | None:
         """
@@ -117,12 +159,3 @@ class Agency:
         except KeyError as e:
             print(f'No VisitorCounter found at all for the store {self.name}')
             print(e)
-
-if __name__ == "__main__":
-    if len(sys.argv) > 1:
-        date_tok = sys.argv[1].split("-")
-        date_of_visit = date(int(date_tok[0]), int(date_tok[1]), int(date_tok[2]))
-    else:
-        date_of_visit = date(2024, 11, 5)
-
-
