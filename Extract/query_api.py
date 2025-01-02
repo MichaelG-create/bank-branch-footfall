@@ -1,6 +1,6 @@
 """
 Module usable in CLI
-to query the API directly on render.com here:
+to query the api directly on render.com here:
 (example of request)
 https://simulated-banking-agency-traffic-counters.onrender.com/get_visitor_count?date_time=2025-05-29_09:00&agency_name=Lyon_1&counter_id=0
 Loop on multiple dates and hours to create analytical reports
@@ -15,7 +15,7 @@ import requests
 
 class API:  # pylint: disable=R0903
     """
-    API class used to request the API directly on render.com
+    api class used to request the api directly on render.com
     methods : request_api (sends GET request and get JSON response back)
     """
 
@@ -25,7 +25,7 @@ class API:  # pylint: disable=R0903
 
     def request_api(self, date_string: str):
         """
-        Sends a GET request to the API and print the response
+        Sends a GET request to the api and print the response
         :return: None
         """
         try:
@@ -70,12 +70,12 @@ if __name__ == "__main__":
     # validates the format
     validate_date_format(date_str)
 
-    # API settings
+    # api settings
     BASE_URL = "https://du-end2end-project.onrender.com"
     GET_ROUTE = "/get_visitor_count"
 
-    # create the API object
+    # create the api object
     renderAPI = API(BASE_URL, GET_ROUTE)
 
-    # request API and print JSON response
+    # request api and print JSON response
     renderAPI.request_api(date_str)
