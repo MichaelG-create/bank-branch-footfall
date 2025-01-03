@@ -54,20 +54,20 @@ async def get_visitor_count(
                 f"the sensor was broken.",
             )
 
-        if count == -1 and date_time_obj.weekday() >= 5:
-            raise HTTPException(
-                status_code=404,
-                detail=f"The bank was closed on {date_time_obj.strftime("%A")} {date_time} "
-                f"(opened monday to friday).",
-            )
-
-        if count == -1 and date_time_obj.weekday() < 5:
-            raise HTTPException(
-                status_code=404,
-                detail=f"The bank was closed on {date_time_obj.strftime("%A")} {date_time} "
-                f"(aperture hours 9-12 13-18) (12:00 and 18:00 closed).",
-            )
-
+        # if count == -1 and date_time_obj.weekday() >= 5:
+        #     raise HTTPException(
+        #         status_code=404,
+        #         detail=f"The bank was closed on {date_time_obj.strftime("%A")} {date_time} "
+        #         f"(opened monday to friday).",
+        #     )
+        #
+        # if count == -1 and date_time_obj.weekday() < 5:
+        #     raise HTTPException(
+        #         status_code=404,
+        #         detail=f"The bank was closed on {date_time_obj.strftime("%A")} {date_time} "
+        #         f"(aperture hours 9-12 13-18) (12:00 and 18:00 closed).",
+        #     )
+        #
         if counter_id == -1:  # all traffic
             return {
                 "AgencyName": agency_name,
