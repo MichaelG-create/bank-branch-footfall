@@ -32,15 +32,15 @@ def create_agencies(db_path: str, table_name: str) -> dict[str, Agency]:
     for _, row in agencies_df.iterrows():
         # Create an Agency object for each row
         agency_row = Agency(
-            row["AgencyName"],
-            row["Size"],
-            row["LocationType"],
-            row["BaseTraffic"],
-            row["NumCounter"],
+            row["agency_name"],
+            row["agency_size"],
+            row["location_type"],
+            row["base_traffic"],
+            row["counter_number"],
         )
 
-        # Add the agency to the dictionary, using the AgencyName as the key
-        data_dict[row["AgencyName"]] = agency_row
+        # Add the agency to the dictionary, using the agency_name as the key
+        data_dict[row["agency_name"]] = agency_row
 
     return data_dict
 
@@ -60,7 +60,7 @@ def load_agencies_from_db_to_dataframe(path: str, table: str) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    db_path = "db/AgencyDetails.duckdb"
-    table_name = "AgencyDetails"
+    path_to_db = "db/agencies.duckdb"
+    table = "agencies"
 
-    print(create_agencies(db_path, table_name))
+    print(create_agencies(path_to_db, table))

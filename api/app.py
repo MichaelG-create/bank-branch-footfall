@@ -13,10 +13,11 @@ from fastapi import FastAPI, HTTPException
 
 from api.data_app import create_agencies
 
-DB_PATH = "api/data_app/db/AgencyDetails.duckdb"
-TABLE_NAME = "AgencyDetails"
+DB_PATH = "api/data_app/db/agencies.duckdb"
+TABLE_NAME = "agencies"
 
-agencies_dict = create_agencies(DB_PATH, TABLE_NAME)  # read everything from the table
+# Obtain the agencies as {agency_name: agency_object, etc.)
+agencies_dict = create_agencies(DB_PATH, TABLE_NAME)
 
 app = FastAPI()
 
@@ -32,7 +33,7 @@ async def get_visitor_count(
     - a certain counter_id (if omitted, then all traffic given)
     - with a unit to count the visitors
     :param date_time: string with format 'YYYY-MM-DD_HH:MM'
-    :param agency_name: string with format 'AgencyName'
+    :param agency_name: string with format 'agency_name'
     :param counter_id: int
     :param count_unit: str
     :return: visitor count at this moment
@@ -70,14 +71,14 @@ async def get_visitor_count(
         #
         if counter_id == -1:  # all traffic
             return {
-                "AgencyName": agency_name,
+                "agency_name": agency_name,
                 "date_time": date_time,
                 "visitor_count": count,
                 "unit": count_unit,
             }
 
         return {
-            "AgencyName": agency_name,
+            "agency_name": agency_name,
             "date_time": date_time,
             "visitor_count": count,
             "unit": count_unit,
