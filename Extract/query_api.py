@@ -16,7 +16,6 @@ import requests
 
 import pandas as pd
 
-
 class Api:  # pylint: disable=R0903
     """
     api class used to request the api directly on render.com
