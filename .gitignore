@@ -1,3 +1,6 @@
-/venv/
+/.venv/
 .idea
 temp.py
+*DEBUG*
+*.duckdb
+*.csv
