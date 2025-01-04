@@ -39,10 +39,10 @@ class Api:  # pylint: disable=R0903
             url = (
                 f"{self.base_url}{self.get_route}?"
                 f"date_time={date_string}&"
-                f"name_of_agency={name_of_agency}&"
-                f"id_of_counter={id_of_counter}"
+                f"agency_name={name_of_agency}&"
+                f"counter_id={id_of_counter}"
             )
-            print(f"requesting {url}")
+            # print(f"requesting {url}")
             response = requests.get(url, timeout=5)
 
             # check if the request was successful
@@ -132,11 +132,12 @@ def perform_single_date_request(target_api):
 
 if __name__ == "__main__":
     # local db settings
-    PATH_DB = "../api/data_app/db/agencies.duckdb"
+    PATH_DB = "/home/michael/ProjetPerso/Banking_Agency_Traffic/api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 
     # API settings
-    BASE_URL = "https://simulated-banking-agency-traffic-counters.onrender.com"
+    # BASE_URL = "https://simulated-banking-agency-traffic-counters.onrender.com"
+    BASE_URL = "http://127.0.0.1:8000"
     GET_ROUTE = "/get_visitor_count"
 
     # create the api object
@@ -148,37 +149,53 @@ if __name__ == "__main__":
 
     else:
         # use local database to load agency_name and corresponding counter_num
-        df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+        agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
 
         # prepare the time_slice of the data
-        START_DATE = "2024-12-02 08:00"
-        END_DATE = "2024-12-02 09:00"
+        START_DATE = "2024-12-01 00:00"
+        END_DATE = "2024-12-31 23:00"
 
-        DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="H")
+        DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="h")
 
         DATE_RANGE_STR = START_DATE + "-" + END_DATE
 
         # find all agency_names and counter_num they have
         # loop on it in the API
-        for agency_name, counter_num in df[
-            ["agency_name", "NumCounter"]
+        # initiate the df
+        df = pd.DataFrame(
+            columns=[
+                "date_time",
+                "agency_name",
+                "counter_id",
+                "visitor_count",
+                "unit",
+            ]
+        )
+
+        for agency_name, counter_num in agency_df[
+            ["agency_name", "counter_number"]
         ].values.tolist():
-            for counter_id in range(counter_num):
-                for date_str in DATE_RANGE:
-                    # put date_str to expected format in the API
-                    date_str = date_str.strftime("%Y-%m-%d_%H:%M")
+            for date_str in DATE_RANGE:
+                # put date_str to expected format in the API
+                date_str = date_str.strftime("%Y-%m-%d_%H:%M")
+
+                for counter_id in range(counter_num):
 
                     # request api and obtain JSON response
                     json_response = render_api.request_api(
                         date_str, agency_name, counter_id
                     )
 
-                    # Load JSON data into a pandas DataFrame
+                    # Load cumulatively JSON data into a pandas DataFrame
                     try:
-                        df = pd.DataFrame([json_response])
-                        print(df)
-                        # Save DataFrame to CSV
-                        df.to_csv("data_" + DATE_RANGE_STR + ".csv", index=False)
+                        # df = pd.DataFrame([json_response])
+                        df = pd.concat(
+                            [df, pd.DataFrame([json_response])], ignore_index=True
+                        )
+                        # print(df)
                     except ValueError as v:
                         print(v)
                         print(json_response)
+
+        # Save DataFrame to CSV
+        df.to_csv("data_" + DATE_RANGE_STR + ".csv", index=False)
