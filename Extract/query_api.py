@@ -8,14 +8,20 @@ Loop on multiple dates and hours to create analytical reports
 """
 
 import re
+import string
 import sys
 from datetime import datetime
 
 import duckdb
 import requests
-
+import numpy as np
 import pandas as pd
 
+from api.data_app.random_seed import RandomSeed
+
+# ----------------------------------------------------------------------------------------------
+#                       API class
+# ----------------------------------------------------------------------------------------------
 
 class Api:  # pylint: disable=R0903
     """
@@ -55,58 +61,9 @@ class Api:  # pylint: disable=R0903
             return str(e)
 
 
-def validate_date_format(date_string: str):
-    """
-    Validate that date_string corresponds to format 'YYYY-MM-DD_HH:MM'.
-    """
-    pattern = r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}$"
-    if not re.match(pattern, date_string):
-        raise ValueError(
-            f"Invalid date format: {date_string}. Expected format: YYYY-MM-DD_HH:MM"
-        )
-    # check that the date is valid
-    try:
-        datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
-    except ValueError as e:
-        raise ValueError(f"Invalid date content: {date_string}. {e}") from e
-
-
-def validate_cli_parameters():
-    """Check parameters validity for CLI"""
-    # check passed arguments
-    if not 3 <= len(sys.argv) <= 4:
-        print("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
-        sys.exit(1)  # stops with an error code
-
-
-def get_cli_parameters():
-    """return the 3 parameters from CLI as a tuple"""
-    date_string = sys.argv[1]
-    agency_name_string = sys.argv[2]
-    # get the facultative argument counter_id
-    if len(sys.argv) == 4:
-        counter_id_int = int(sys.argv[3])
-    else:
-        counter_id_int = -1
-    return date_string, agency_name_string, counter_id_int
-
-
-def load_agency_name_counter_num_from_db(path, table_name):
-    """Load from agencies table in db : (agency_name, counter_number)"""
-    # load AgenciesDetails.duckdb database and look in AgenciesDetails table
-    conn = duckdb.connect(path)
-    data_f = conn.execute(
-        f"""
-        SELECT agency_name, counter_number 
-        FROM {table_name}
-    """
-    ).fetchdf()
-
-    conn.close()
-
-    return data_f
-
-
+# ----------------------------------------------------------------------------------------------
+#                       SINGLE DATE REQUEST FROM CLI PARAMETERS
+# ----------------------------------------------------------------------------------------------
 def perform_single_date_request(target_api):
     """
     perform a single request using CLI parameters
@@ -129,6 +86,129 @@ def perform_single_date_request(target_api):
         print(e)
         print(json_respons)
 
+def validate_cli_parameters():
+    """Check parameters validity for CLI"""
+    # check passed arguments
+    if not 3 <= len(sys.argv) <= 4:
+        print("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
+        sys.exit(1)  # stops with an error code
+
+def get_cli_parameters():
+    """return the 3 parameters from CLI as a tuple"""
+    date_string = sys.argv[1]
+    agency_name_string = sys.argv[2]
+    # get the facultative argument counter_id
+    if len(sys.argv) == 4:
+        counter_id_int = int(sys.argv[3])
+    else:
+        counter_id_int = -1
+    return date_string, agency_name_string, counter_id_int
+
+# ----------------------------------------------------------------------------------------------
+
+def validate_date_format(date_string: str):
+    """
+    Validate that date_string corresponds to format 'YYYY-MM-DD_HH:MM'.
+    """
+    pattern = r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}$"
+    if not re.match(pattern, date_string):
+        raise ValueError(
+            f"Invalid date format: {date_string}. Expected format: YYYY-MM-DD_HH:MM"
+        )
+    # check that the date is valid
+    try:
+        datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
+    except ValueError as e:
+        raise ValueError(f"Invalid date content: {date_string}. {e}") from e
+
+def load_agency_name_counter_num_from_db(path, table_name):
+    """Load from agencies table in db : (agency_name, counter_number)"""
+    # load AgenciesDetails.duckdb database and look in AgenciesDetails table
+    conn = duckdb.connect(path)
+    data_f = conn.execute(
+        f"""
+        SELECT agency_name, counter_number 
+        FROM {table_name}
+    """
+    ).fetchdf()
+
+    conn.close()
+
+    return data_f
+
+
+def add_random_error_to_row(row_df: dict) -> dict:
+    """ Randomly add bad fields or value in the row field :
+    - agency_name: Null or value not in the agencies db : 'Paris', 'New York',
+    or badly written 'Cognen_1', 'Chambéry_1', 'Aix-les-bains_1', 'La motte servolex 1'
+    - counter_id = -1 or Null or *100
+    - visitor_count = visitor_count*10
+    - unit = 'L', 'kg', Null
+    uses random seed based on random in api/data_app/random_seed
+    :Returns:  the possibly modified dataframe row
+    """
+    # Prepare the randomness
+    # Convert to datetime object for the seed
+    date_string = row_df["date_time"]
+    date_time = datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
+
+    random_seed = RandomSeed(date_time) # default: takes only date from the date_time
+    time = date_time.strftime("%H%M")
+
+    seed = random_seed.generate_seed(
+        time,
+        row_df["agency_name"],
+        row_df["counter_id"],
+        row_df["visitor_count"],
+        row_df["unit"],
+    )
+
+    np.random.seed(seed)
+    pct_error = 0.05
+    return {
+        "agency_name":  add_error_or_keep(row_df["agency_name"], pct_error),
+        "counter_id":   add_error_or_keep(row_df["counter_id"], pct_error),
+        "visitor_count":add_error_or_keep(row_df["visitor_count"], pct_error),
+        "unit":         add_error_or_keep(row_df["unit"], pct_error),
+    }
+
+
+def add_error_or_keep(data: str|int|float, pct_err: float = 0.05) -> str | int | None:
+    """ randomly add an error to the data given
+    if the random number is under err_pct (typically 5%)"""
+
+    rd_num = np.random.random()
+    rd_num2 = np.random.random()
+    if rd_num < pct_err:
+        if type(data) == str:
+            if rd_num2 < 0.3:
+                return None
+            if rd_num2 < 0.6:
+                return data.replace("_", " ")
+            return replace_random_letter(data)
+        if type(data) == int | float:
+            if rd_num2 < 0.3:
+                return None
+            if rd_num2 < 0.6:
+                return 100 * (data + 2)
+    return data
+
+
+def replace_random_letter(s):
+    """ randomly replaces a letter by another one"""
+    if not s:  # Check if the string is empty
+        return s
+    # Pick a random index in the string
+    random_index = np.random.randint(0, len(s) - 1)
+    # Pick a random letter (lowercase or uppercase)
+
+    new_letter = np.random.choice(list(string.ascii_letters))
+    # Replace the letter at the chosen index
+    new_string = s[:random_index] + new_letter + s[random_index + 1:]
+
+    return new_string
+
+
 
 if __name__ == "__main__":
     # local db settings
@@ -140,29 +220,27 @@ if __name__ == "__main__":
     BASE_URL = "http://127.0.0.1:8000"
     GET_ROUTE = "/get_visitor_count"
 
-    # create the api object
+    # Create the api object
     render_api = Api(BASE_URL, GET_ROUTE)
 
-    # doing request one at a time 1 date_time, 1 agency, 1 counter_id (single row)
+    # Doing request from CLI, one at a time (1 date_time, 1 agency, 1 counter_id) (single row)
     if len(sys.argv) >= 2:
         perform_single_date_request(render_api)
 
     else:
-        # use local database to load agency_name and corresponding counter_num
-        agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
-
         # prepare the time_slice of the data
-        START_DATE = "2024-12-01 00:00"
-        END_DATE = "2024-12-31 23:00"
+        START_DATE  = "2024-12-22 00:00"
+        END_DATE    = "2024-12-23 23:00"
 
         DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="h")
 
         DATE_RANGE_STR = START_DATE + "-" + END_DATE
 
-        # find all agency_names and counter_num they have
-        # loop on it in the API
+        # use local database to load agency_name and corresponding counter_num
+        agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+
         # initiate the df
-        df = pd.DataFrame(
+        event_df = pd.DataFrame(
             columns=[
                 "date_time",
                 "agency_name",
@@ -171,31 +249,27 @@ if __name__ == "__main__":
                 "unit",
             ]
         )
-
-        for agency_name, counter_num in agency_df[
-            ["agency_name", "counter_number"]
-        ].values.tolist():
+        # find all agency_names and their number of counter
+        # loop on it in the API
+        for agency_name, counter_num in agency_df[["agency_name", "counter_number"]] \
+                                            .values.tolist():
             for date_str in DATE_RANGE:
                 # put date_str to expected format in the API
                 date_str = date_str.strftime("%Y-%m-%d_%H:%M")
 
                 for counter_id in range(counter_num):
 
-                    # request api and obtain JSON response
-                    json_response = render_api.request_api(
-                        date_str, agency_name, counter_id
-                    )
-
+                    # request api and get JSON response
+                    json_response = render_api.request_api(date_str, agency_name, counter_id)
+                    new_row = add_random_error_to_row(json_response)
+                    new_row = pd.DataFrame([new_row])
                     # Load cumulatively JSON data into a pandas DataFrame
                     try:
-                        # df = pd.DataFrame([json_response])
-                        df = pd.concat(
-                            [df, pd.DataFrame([json_response])], ignore_index=True
-                        )
-                        # print(df)
+                        event_df = pd.concat([event_df, new_row], ignore_index=True)
                     except ValueError as v:
                         print(v)
                         print(json_response)
 
         # Save DataFrame to CSV
-        df.to_csv("data_" + DATE_RANGE_STR + ".csv", index=False)
+        event_df.to_csv("../data/raw/events_all_agencies_counters_" + DATE_RANGE_STR + ".csv",
+                        index=False)

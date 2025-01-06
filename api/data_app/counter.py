@@ -74,7 +74,7 @@ class VisitorCounter:
             # defective counter : sends -1
             else:
                 hour_visits = -10
-                print("dead counter")
+                # print("dead counter")
 
         except ValueError as e:
             print(e)
