@@ -7,6 +7,7 @@ date_time=2025-05-29_09:00&agency_name=Lyon_1&counter_id=0
 Loop on multiple dates and hours to create analytical reports
 """
 
+import calendar
 import re
 import string
 import sys
@@ -155,6 +156,7 @@ def add_random_error_to_row(row_df: dict) -> dict:
     """
     # Prepare the randomness
     # Convert to datetime object for the seed
+    # print(row_df)
     date_string = row_df["date_time"]
     date_time = datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
 
@@ -180,7 +182,7 @@ def add_random_error_to_row(row_df: dict) -> dict:
 
 
 def add_error_or_keep(
-    data: str | int | float, pct_err: float = 0.05
+    data: str | int | float, pct_err: float = 0.01
 ) -> str | int | None:
     """randomly add an error to the data given
     if the random number is under err_pct (typically 5%)"""
@@ -236,52 +238,62 @@ if __name__ == "__main__":
 
     else:
         # prepare the time_slice of the data
-        START_DATE = "2024-12-22 00:00"
-        END_DATE = "2024-12-23 23:00"
+        YEAR = 2024
+        MONTH = 1
 
-        DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="h")
+        for month_i in range(2,13):
+            MONTH = month_i
+            START_DATE = (str
+                          (YEAR) + "-" + str(MONTH) + "-01 00:00")
+            LAST_DAY_OF_THE_MONTH = calendar.monthrange(YEAR, MONTH)[1]
+            END_DATE = (
+                str(YEAR) + "-" + str(MONTH) + "-" + str(LAST_DAY_OF_THE_MONTH) + " 23:00"
+            )
 
-        DATE_RANGE_STR = START_DATE + "-" + END_DATE
+            DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="h")
 
-        # use local database to load agency_name and corresponding counter_num
-        agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+            DATE_RANGE_STR = START_DATE + "-" + END_DATE
 
-        # initiate the df
-        event_df = pd.DataFrame(
-            columns=[
-                "date_time",
-                "agency_name",
-                "counter_id",
-                "visitor_count",
-                "unit",
-            ]
-        )
-        # find all agency_names and their number of counter
-        # loop on it in the API
-        for agency_name, counter_num in agency_df[
-            ["agency_name", "counter_number"]
-        ].values.tolist():
+            # use local database to load agency_name and corresponding counter_num
+            agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+
+            # initiate the df
+            event_df = pd.DataFrame(
+                columns=[
+                    "date_time",
+                    "agency_name",
+                    "counter_id",
+                    "visitor_count",
+                    "unit",
+                ]
+            )
+            # find all agency_names and their number of counter
+            # loop on it in the API
             for date_str in DATE_RANGE:
                 # put date_str to expected format in the API
                 date_str = date_str.strftime("%Y-%m-%d_%H:%M")
 
-                for counter_id in range(counter_num):
+                for agency_name, counter_num in agency_df[
+                    ["agency_name", "counter_number"]
+                ].values.tolist():
 
-                    # request api and get JSON response
-                    json_response = render_api.request_api(
-                        date_str, agency_name, counter_id
-                    )
-                    new_row = add_random_error_to_row(json_response)
-                    new_row = pd.DataFrame([new_row])
-                    # Load cumulatively JSON data into a pandas DataFrame
-                    try:
-                        event_df = pd.concat([event_df, new_row], ignore_index=True)
-                    except ValueError as v:
-                        print(v)
-                        print(json_response)
+                    for counter_id in range(counter_num):
 
-        # Save DataFrame to CSV
-        event_df.to_csv(
-            "../data/raw/events_all_agencies_counters_" + DATE_RANGE_STR + ".csv",
-            index=False,
-        )
+                        # request api and get JSON response
+                        json_response = render_api.request_api(
+                            date_str, agency_name, counter_id
+                        )
+                        new_row = add_random_error_to_row(json_response)
+                        new_row = pd.DataFrame([new_row])
+                        # Load cumulatively JSON data into a pandas DataFrame
+                        try:
+                            event_df = pd.concat([event_df, new_row], ignore_index=True)
+                        except ValueError as v:
+                            print(v)
+                            print(json_response)
+
+            # Save DataFrame to CSV
+            event_df.to_csv(
+                "data/raw/events_all_agencies_counters_" + DATE_RANGE_STR + ".csv",
+                index=False,
+            )

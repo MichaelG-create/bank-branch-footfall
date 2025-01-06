@@ -47,13 +47,13 @@ async def get_visitor_count(
         else:
             count = agency.get_all_counter_traffic(date_time_obj)
 
-        if count == -10:
-
-            raise HTTPException(
-                status_code=404,
-                detail=f"No visitor counted on {date_time_obj.strftime("%A")} {date_time} "
-                f"the sensor was broken.",
-            )
+        # if count == -10:
+        #
+        #     raise HTTPException(
+        #         status_code=404,
+        #         detail=f"No visitor counted on {date_time_obj.strftime("%A")} {date_time} "
+        #         f"the sensor was broken.",
+        #     )
 
         # if count == -1 and date_time_obj.weekday() >= 5:
         #     raise HTTPException(
