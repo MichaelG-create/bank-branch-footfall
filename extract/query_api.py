@@ -172,8 +172,9 @@ def add_random_error_to_row(row_df: dict) -> dict:
     )
 
     np.random.seed(seed)
-    pct_error = 0.05
+    pct_error = 0.01
     return {
+        "date_time": f'{date_time.strftime("%Y-%m-%d_%H")}',  ## to remove useless minutes and seconds
         "agency_name": add_error_or_keep(row_df["agency_name"], pct_error),
         "counter_id": add_error_or_keep(row_df["counter_id"], pct_error),
         "visitor_count": add_error_or_keep(row_df["visitor_count"], pct_error),
@@ -241,18 +242,19 @@ if __name__ == "__main__":
         YEAR = 2024
         MONTH = 1
 
-        for month_i in range(2,13):
+        for month_i in range(2,12+1):
             MONTH = month_i
-            START_DATE = (str
-                          (YEAR) + "-" + str(MONTH) + "-01 00:00")
             LAST_DAY_OF_THE_MONTH = calendar.monthrange(YEAR, MONTH)[1]
-            END_DATE = (
-                str(YEAR) + "-" + str(MONTH) + "-" + str(LAST_DAY_OF_THE_MONTH) + " 23:00"
-            )
 
-            DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="h")
+            START_DATE = f"{YEAR}-{MONTH:02}-01"
+            END_DATE =   f"{YEAR}-{MONTH:02}-{LAST_DAY_OF_THE_MONTH}"
 
-            DATE_RANGE_STR = START_DATE + "-" + END_DATE
+            DATE_RANGE = pd.date_range(start=f'{START_DATE} 00:00',
+                                       end=  f'{END_DATE} 23:00',
+                                       freq="h")
+
+            DATE_RANGE_STR = f"{START_DATE}-{END_DATE}"
+            DATE_RANGE_STR = DATE_RANGE_STR.replace(' ','_')
 
             # use local database to load agency_name and corresponding counter_num
             agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
