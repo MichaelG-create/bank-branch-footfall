@@ -23,6 +23,7 @@ from api.data_app.random_seed import RandomSeed
 #                       API class
 # ----------------------------------------------------------------------------------------------
 
+
 class Api:  # pylint: disable=R0903
     """
     api class used to request the api directly on render.com
@@ -86,12 +87,14 @@ def perform_single_date_request(target_api):
         print(e)
         print(json_respons)
 
+
 def validate_cli_parameters():
     """Check parameters validity for CLI"""
     # check passed arguments
     if not 3 <= len(sys.argv) <= 4:
         print("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
         sys.exit(1)  # stops with an error code
+
 
 def get_cli_parameters():
     """return the 3 parameters from CLI as a tuple"""
@@ -104,7 +107,9 @@ def get_cli_parameters():
         counter_id_int = -1
     return date_string, agency_name_string, counter_id_int
 
+
 # ----------------------------------------------------------------------------------------------
+
 
 def validate_date_format(date_string: str):
     """
@@ -120,6 +125,7 @@ def validate_date_format(date_string: str):
         datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
     except ValueError as e:
         raise ValueError(f"Invalid date content: {date_string}. {e}") from e
+
 
 def load_agency_name_counter_num_from_db(path, table_name):
     """Load from agencies table in db : (agency_name, counter_number)"""
@@ -138,7 +144,7 @@ def load_agency_name_counter_num_from_db(path, table_name):
 
 
 def add_random_error_to_row(row_df: dict) -> dict:
-    """ Randomly add bad fields or value in the row field :
+    """Randomly add bad fields or value in the row field :
     - agency_name: Null or value not in the agencies db : 'Paris', 'New York',
     or badly written 'Cognen_1', 'Chambéry_1', 'Aix-les-bains_1', 'La motte servolex 1'
     - counter_id = -1 or Null or *100
@@ -152,7 +158,7 @@ def add_random_error_to_row(row_df: dict) -> dict:
     date_string = row_df["date_time"]
     date_time = datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
 
-    random_seed = RandomSeed(date_time) # default: takes only date from the date_time
+    random_seed = RandomSeed(date_time)  # default: takes only date from the date_time
     time = date_time.strftime("%H%M")
 
     seed = random_seed.generate_seed(
@@ -166,27 +172,29 @@ def add_random_error_to_row(row_df: dict) -> dict:
     np.random.seed(seed)
     pct_error = 0.05
     return {
-        "agency_name":  add_error_or_keep(row_df["agency_name"], pct_error),
-        "counter_id":   add_error_or_keep(row_df["counter_id"], pct_error),
-        "visitor_count":add_error_or_keep(row_df["visitor_count"], pct_error),
-        "unit":         add_error_or_keep(row_df["unit"], pct_error),
+        "agency_name": add_error_or_keep(row_df["agency_name"], pct_error),
+        "counter_id": add_error_or_keep(row_df["counter_id"], pct_error),
+        "visitor_count": add_error_or_keep(row_df["visitor_count"], pct_error),
+        "unit": add_error_or_keep(row_df["unit"], pct_error),
     }
 
 
-def add_error_or_keep(data: str|int|float, pct_err: float = 0.05) -> str | int | None:
-    """ randomly add an error to the data given
+def add_error_or_keep(
+    data: str | int | float, pct_err: float = 0.05
+) -> str | int | None:
+    """randomly add an error to the data given
     if the random number is under err_pct (typically 5%)"""
 
     rd_num = np.random.random()
     rd_num2 = np.random.random()
     if rd_num < pct_err:
-        if type(data) == str:
+        if isinstance(data, str):
             if rd_num2 < 0.3:
                 return None
             if rd_num2 < 0.6:
                 return data.replace("_", " ")
             return replace_random_letter(data)
-        if type(data) == int | float:
+        if isinstance(data, (int, float)):
             if rd_num2 < 0.3:
                 return None
             if rd_num2 < 0.6:
@@ -195,7 +203,7 @@ def add_error_or_keep(data: str|int|float, pct_err: float = 0.05) -> str | int |
 
 
 def replace_random_letter(s):
-    """ randomly replaces a letter by another one"""
+    """randomly replaces a letter by another one"""
     if not s:  # Check if the string is empty
         return s
     # Pick a random index in the string
@@ -204,10 +212,9 @@ def replace_random_letter(s):
 
     new_letter = np.random.choice(list(string.ascii_letters))
     # Replace the letter at the chosen index
-    new_string = s[:random_index] + new_letter + s[random_index + 1:]
+    new_string = s[:random_index] + new_letter + s[random_index + 1 :]
 
     return new_string
-
 
 
 if __name__ == "__main__":
@@ -229,8 +236,8 @@ if __name__ == "__main__":
 
     else:
         # prepare the time_slice of the data
-        START_DATE  = "2024-12-22 00:00"
-        END_DATE    = "2024-12-23 23:00"
+        START_DATE = "2024-12-22 00:00"
+        END_DATE = "2024-12-23 23:00"
 
         DATE_RANGE = pd.date_range(start=START_DATE, end=END_DATE, freq="h")
 
@@ -251,8 +258,9 @@ if __name__ == "__main__":
         )
         # find all agency_names and their number of counter
         # loop on it in the API
-        for agency_name, counter_num in agency_df[["agency_name", "counter_number"]] \
-                                            .values.tolist():
+        for agency_name, counter_num in agency_df[
+            ["agency_name", "counter_number"]
+        ].values.tolist():
             for date_str in DATE_RANGE:
                 # put date_str to expected format in the API
                 date_str = date_str.strftime("%Y-%m-%d_%H:%M")
@@ -260,7 +268,9 @@ if __name__ == "__main__":
                 for counter_id in range(counter_num):
 
                     # request api and get JSON response
-                    json_response = render_api.request_api(date_str, agency_name, counter_id)
+                    json_response = render_api.request_api(
+                        date_str, agency_name, counter_id
+                    )
                     new_row = add_random_error_to_row(json_response)
                     new_row = pd.DataFrame([new_row])
                     # Load cumulatively JSON data into a pandas DataFrame
@@ -271,5 +281,7 @@ if __name__ == "__main__":
                         print(json_response)
 
         # Save DataFrame to CSV
-        event_df.to_csv("../data/raw/events_all_agencies_counters_" + DATE_RANGE_STR + ".csv",
-                        index=False)
+        event_df.to_csv(
+            "../data/raw/events_all_agencies_counters_" + DATE_RANGE_STR + ".csv",
+            index=False,
+        )
