@@ -1,6 +1,27 @@
+from os import truncate
+
+import duckdb
+
+from fuzzywuzzy import process
+
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType
 from pyspark.sql import functions as F
+
+
+def get_closest_match(word):
+    # Use fuzzywuzzy's process.extractOne to find the closest match
+    word_list = word_list_broadcast.value
+    closest_match = process.extractOne(word, word_list)
+    return closest_match[0] if closest_match else None
+
+# Register the UDF with Spark
+from pyspark.sql.functions import udf
+# Register the UDF
+get_closest_match_udf = udf(get_closest_match, StringType())
+
+
+
 
 
 # ---------------------------------------------------------------------------------
@@ -28,6 +49,69 @@ class DataPipeline:
         df = self.clean_visitor_count(df)
         return df
 
+    def clean_agency_name(self, df):
+        """ drop null, lower and replace white spaces in agency_names by underscores """
+        df = df.filter(F.col("agency_name").isNotNull())
+        df = df.withColumn("agency_name",F.lower(F.col("agency_name")))
+        df = df.withColumn("agency_name",F.regexp_replace(F.col("agency_name"), " ", "_"))
+        print("here's the matching words df")
+
+        filtered_df = self.find_matching_agency_name(df)
+        df = self.correct_agency_name(df, filtered_df)
+
+        # df.select("agency_name").distinct().sort("agency_name").show(1000, truncate=False)
+
+        return df
+
+    def find_matching_agency_name(self, df):
+        """ lists the distinct agencies names from df
+        find the match between :
+        - the agency_names_from_df words and
+        - the agency_names_from_db words"""
+        # Select distinct words from the 'words' column
+        distinct_words_df = df.select("agency_name").distinct()
+        word_list = self.config["agency_names"]
+
+        # Filter out values in `distinct_words_df` that are in `word_list` (no need to change them)
+        filtered_df = distinct_words_df.filter(~distinct_words_df["agency_name"].isin(word_list))
+
+        # Apply the UDF to the filtered DataFrame
+        result_df = filtered_df.withColumn("closest_match",
+                                           get_closest_match_udf(filtered_df["agency_name"]))
+        # closest word correspondance research
+        return result_df
+
+
+    def correct_agency_name(self, df, filtered_df):
+        # Perform Left Join on 'agency_name'
+        joined_df = df.alias('l').join(
+            filtered_df.alias('r'),
+            on=(F.lower('l.agency_name') == F.lower('r.agency_name')),
+            # Adjust the join condition as needed
+            how='left'
+        )
+        # Use COALESCE to get the closest match or original name
+        result_df = joined_df.withColumn(
+            "new_agency_name",
+            F.coalesce('r.closest_match', 'l.agency_name')
+        )
+
+        # Drop the useless 'closest_match' column
+        result_df = result_df.drop('closest_match')
+
+        # Drop the old 'agency_name' column
+        result_df = result_df.drop('agency_name')
+
+        # Rename 'new_agency_name' to 'agency_name'
+        result_df = result_df.withColumnRenamed('new_agency_name', 'agency_name')
+
+        # Show the result
+        # result_df.show(truncate=False)
+
+        return result_df
+
+    # --------------------------------------------------------------------------------------
+
     def clean_visitor_count(self, df):
         """ Check for any non-numeric values in visitor_count and replace them by 0
         (includes null) """
@@ -46,14 +130,6 @@ class DataPipeline:
     def drop_negative_visitor_count(self, df):
         """ closed times (-1) or broken sensor (-10) -> visitor_count = 0 """
         return df.filter(F.col("visitor_count") > 0)
-
-    def clean_agency_name(self, df):
-        """ drop null, lower and replace white spaces in agency_names by underscores """
-        df = df.filter(F.col("agency_name").isNotNull())
-
-        return df.withColumn("agency_name",
-                               F.regexp_replace(
-                                   F.lower(F.col("agency_name")), " ", "_"))
 
     # --------------------------------------------------------------------------------------
     def aggregate_visitor_count_daily(self, df):
@@ -88,16 +164,32 @@ class DataPipeline:
         # aggregated_daily_data.show()
 
         aggregated_monthly_data = self.aggregate_visitor_count_monthly(aggregated_daily_data)
-        (aggregated_monthly_data.sort(F.col("month"),
-                                     F.col("agency_name"),
-                                     F.col("monthly_visitor_count") )
+        (aggregated_monthly_data.sort(
+                                        F.col("agency_name"),
+                                        F.col("month"),
+                                        F.col("monthly_visitor_count") )
                                     .show(2000))
 
         # write
         aggregated_monthly_data.write.parquet(self.config["output_path"], mode="overwrite")
 
 # ---------------------------------------------------------------------------------
+def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
+    # Connect to the DuckDB database
+    conn = duckdb.connect(path)
 
+    # Execute the query and load the result directly into a pandas DataFrame
+    query = f"SELECT agency_name FROM {table}"
+    result = conn.execute(query).fetchall()
+
+    # lower to ease the matching
+    column_values = [row[0].lower() for row in result]
+
+    # Close the connection
+    conn.close()
+
+    return column_values
+# ---------------------------------------------------------------------------------
 
 # Example Usage
 if __name__ == "__main__":
@@ -114,11 +206,21 @@ if __name__ == "__main__":
             StructField("unit", StringType(), True),
         ]
     )
+
+
+    agency_names = load_agency_name_list_from_db("api/data_app/db/agencies.duckdb",
+                                                "agencies")
+    # Broadcast word_list to make it accessible in all nodes
+    word_list_broadcast = spark.sparkContext.broadcast(agency_names)
+
     config = {
         "schema": schema,
         "file_path": "data/raw/2024/*.csv",
-        "output_path": "data/2024_agencies_month_visitor_count.parquet"
+        "output_path": "data/2024_agencies_month_visitor_count.parquet",
+        "agency_names": agency_names
     }
+
+
 
     pipeline = DataPipeline(spark, config)
     pipeline.run()
