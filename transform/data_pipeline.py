@@ -1,3 +1,4 @@
+import duckdb
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType
 from pyspark.sql import functions as F
@@ -28,6 +29,31 @@ class DataPipeline:
         df = self.clean_visitor_count(df)
         return df
 
+    def clean_agency_name(self, df):
+        """ drop null, lower and replace white spaces in agency_names by underscores """
+        df = df.filter(F.col("agency_name").isNotNull())
+
+
+        return df.withColumn("agency_name",
+                               F.regexp_replace(
+                                   F.lower(F.col("agency_name")), " ", "_"))
+    def find_matching_agency_name(self, df):
+        """ lists the distinct agencies names from df
+        find the match between :
+        - the agency_names_from_df words and
+        - the agency_names_from_db words"""
+        # Select distinct words from the 'words' column
+        distinct_words_df = df.select("agency_names").distinct()
+        word_list = self.config["agency_names"]
+
+        # Filter out values in `distinct_words_df` that are in `word_list` (no need to change them)
+        filtered_df = distinct_words_df.filter(~distinct_words_df["agency_names"].isin(word_list))
+
+
+        # closest word correspondance research
+        closest_word = min(word_list, key=lambda w: levenshtein_distance(w, word))
+        return closest_word
+
     def clean_visitor_count(self, df):
         """ Check for any non-numeric values in visitor_count and replace them by 0
         (includes null) """
@@ -46,14 +72,6 @@ class DataPipeline:
     def drop_negative_visitor_count(self, df):
         """ closed times (-1) or broken sensor (-10) -> visitor_count = 0 """
         return df.filter(F.col("visitor_count") > 0)
-
-    def clean_agency_name(self, df):
-        """ drop null, lower and replace white spaces in agency_names by underscores """
-        df = df.filter(F.col("agency_name").isNotNull())
-
-        return df.withColumn("agency_name",
-                               F.regexp_replace(
-                                   F.lower(F.col("agency_name")), " ", "_"))
 
     # --------------------------------------------------------------------------------------
     def aggregate_visitor_count_daily(self, df):
@@ -97,7 +115,21 @@ class DataPipeline:
         aggregated_monthly_data.write.parquet(self.config["output_path"], mode="overwrite")
 
 # ---------------------------------------------------------------------------------
+def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
+    # Connect to the DuckDB database
+    conn = duckdb.connect(path)
 
+    # Execute the query and load the result directly into a pandas DataFrame
+    query = f"SELECT agency_name FROM {table}"
+    result = conn.execute(query).fetchall()
+
+    column_values = [row[0] for row in result]
+
+    # Close the connection
+    conn.close()
+
+    return column_values
+# ---------------------------------------------------------------------------------
 
 # Example Usage
 if __name__ == "__main__":
@@ -114,14 +146,22 @@ if __name__ == "__main__":
             StructField("unit", StringType(), True),
         ]
     )
+
+
+    agency_names = load_agency_name_list_from_db("api/data_app/db/agencies.duckdb",
+                                                "agencies")
+
     config = {
         "schema": schema,
         "file_path": "data/raw/2024/*.csv",
-        "output_path": "data/2024_agencies_month_visitor_count.parquet"
+        "output_path": "data/2024_agencies_month_visitor_count.parquet",
+        "agency_names": agency_names
     }
 
+
+
     pipeline = DataPipeline(spark, config)
-    pipeline.run()
+    # pipeline.run()
 
     # Stop SparkSession
     spark.stop()
