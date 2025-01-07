@@ -242,19 +242,19 @@ if __name__ == "__main__":
         YEAR = 2024
         MONTH = 1
 
-        for month_i in range(2,12+1):
+        for month_i in range(2, 12 + 1):
             MONTH = month_i
             LAST_DAY_OF_THE_MONTH = calendar.monthrange(YEAR, MONTH)[1]
 
             START_DATE = f"{YEAR}-{MONTH:02}-01"
-            END_DATE =   f"{YEAR}-{MONTH:02}-{LAST_DAY_OF_THE_MONTH}"
+            END_DATE = f"{YEAR}-{MONTH:02}-{LAST_DAY_OF_THE_MONTH}"
 
-            DATE_RANGE = pd.date_range(start=f'{START_DATE} 00:00',
-                                       end=  f'{END_DATE} 23:00',
-                                       freq="h")
+            DATE_RANGE = pd.date_range(
+                start=f"{START_DATE} 00:00", end=f"{END_DATE} 23:00", freq="h"
+            )
 
             DATE_RANGE_STR = f"{START_DATE}-{END_DATE}"
-            DATE_RANGE_STR = DATE_RANGE_STR.replace(' ','_')
+            DATE_RANGE_STR = DATE_RANGE_STR.replace(" ", "_")
 
             # use local database to load agency_name and corresponding counter_num
             agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
