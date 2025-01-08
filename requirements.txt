@@ -24,7 +24,6 @@ pydantic==2.10.4
 pydantic_core==2.27.2
 pylint==3.3.3
 pyspark==3.5.4
-pyspark-stubs==3.0.0.post3
 python-dateutil==2.9.0.post0
 pytz==2024.2
 requests==2.32.3
