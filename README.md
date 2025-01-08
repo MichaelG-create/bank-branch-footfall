@@ -1,8 +1,7 @@
 # Banking Agency Traffic Analyser
-A pipeline with :
 - An API generating traffic count in bank agencies on an hourly basis
-- An ETL which 
-  - Extracts the data
-  - Transform the data to perform analytical queries
-  - Load the data to be presented in
-- a Grafana Dashboard
+- An ETL pipeline using pyspark which 
+  - Extracts the data from the API and saves to CSV raw files (python)
+  - Transforms the data to perform analytical queries (pyspark) 
+  - Loads the data in parquet files
+A Grafana Dashboard
