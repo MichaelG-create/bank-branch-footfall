@@ -174,7 +174,7 @@ def add_random_error_to_row(row_df: dict) -> dict:
     np.random.seed(seed)
     pct_error = 0.01
     return {
-        "date_time": f'{date_time.strftime("%Y-%m-%d_%H")}',  ## to remove useless minutes and seconds
+        "date_time": f'{date_time.strftime("%Y-%m-%d_%H")}',  # remove useless minutes
         "agency_name": add_error_or_keep(row_df["agency_name"], pct_error),
         "counter_id": add_error_or_keep(row_df["counter_id"], pct_error),
         "visitor_count": add_error_or_keep(row_df["visitor_count"], pct_error),
