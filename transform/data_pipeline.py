@@ -1,4 +1,4 @@
-""" Data pipeline module to transform data from raw CSVs """
+""" Data pipeline module to transform raw CSVs to clean parquet """
 
 import duckdb
 
@@ -259,7 +259,7 @@ class DataPipeline:
         # write
         daily_with_percent_change.write.parquet(
             f'{self.config_dict["output_path"]}'
-            f"agencies_daily_visitor_count.parquet",
+            f"agencies_daily_visitor_count",
             mode="overwrite",
         )
 
