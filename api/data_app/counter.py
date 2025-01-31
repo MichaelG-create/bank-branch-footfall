@@ -206,7 +206,8 @@ if __name__ == "__main__":
     for i in range(7000):
         visitors = counter.get_visit_count(date_time)
         print(
-            f"This day {date_time.strftime("%A")} {date_time.day}/{date_time.month}/{date_time.year}, "
+            f"This day {date_time.strftime("%A")} "
+            f"{date_time.day}/{date_time.month}/{date_time.year}, "
             f"at {date_time.hour} got {visitors} visitors"
         )
         date_time += increment

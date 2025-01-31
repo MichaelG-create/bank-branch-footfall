@@ -14,9 +14,9 @@ import sys
 from datetime import datetime
 
 import duckdb
-import requests
 import numpy as np
 import pandas as pd
+import requests
 
 from api.data_app.random_seed import RandomSeed
 

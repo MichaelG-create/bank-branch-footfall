@@ -1,15 +1,11 @@
 """ Data pipeline module to transform raw CSVs to clean parquet """
 
 import duckdb
-
 from fuzzywuzzy import process
-
-
+from pyspark.sql import SparkSession, Window
+from pyspark.sql import functions as F
 from pyspark.sql.functions import udf
-
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType
-from pyspark.sql import functions as F, Window
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 
 def get_closest_match(word):
@@ -26,6 +22,8 @@ get_closest_match_udf = udf(get_closest_match, StringType())
 # ---------------------------------------------------------------------------------
 class DataPipeline:
     """data pipeline to transform data from raw CSVs"""
+
+    # pylint: disable=R0904
 
     def __init__(self, spark_session, config_dict):
         self.spark_session = spark_session
@@ -258,8 +256,7 @@ class DataPipeline:
 
         # write
         daily_with_percent_change.write.parquet(
-            f'{self.config_dict["output_path"]}'
-            f"agencies_daily_visitor_count",
+            f'{self.config_dict["output_path"]}' f"agencies_daily_visitor_count",
             mode="overwrite",
         )
 

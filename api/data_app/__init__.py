@@ -46,6 +46,7 @@ def create_agencies(db_path: str, table_name: str) -> dict[str, Agency]:
 
 
 def load_agencies_from_db_to_dataframe(path: str, table: str) -> pd.DataFrame:
+    """load all agencies form the db in the path, in the table TO a df"""
     # Connect to the DuckDB database
     conn = duckdb.connect(path)
 
@@ -60,7 +61,7 @@ def load_agencies_from_db_to_dataframe(path: str, table: str) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    path_to_db = "db/agencies.duckdb"
-    table = "agencies"
+    PATH_TO_DB = "db/agencies.duckdb"
+    TABLE_NAME = "agencies"
 
-    print(create_agencies(path_to_db, table))
+    print(create_agencies(PATH_TO_DB, TABLE_NAME))
