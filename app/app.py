@@ -1,5 +1,8 @@
 """ Streamlit APP displaying sensors traffic temporal series """
 
+import calendar
+from datetime import date, datetime, timedelta
+
 import duckdb
 import pandas as pd
 import plotly.express as px
@@ -24,44 +27,161 @@ def get_sensor_list(parquet_file: str) -> list[tuple[str, int]]:
     return agency_sensor
 
 
-def get_sensor_chosen(agency_sensor_lst: list[tuple[str, int]]) -> tuple[str, int]:
+def get_agency_chosen(agency_sensor_lst: list[tuple[str, int]]) -> str:
     """from the list agency_sensor_lst, display a selectbox
-    returns the tuple (agency_name, counter_id) chosen by the user"""
-    agency_sensor_list_str = [
-        f"Agence {row[0]} - compteur # {row[1]}" for row in agency_sensor_lst
+    returns the agency_name chosen by the user"""
+    agency_sensor_list_str = sorted({row[0] for row in agency_sensor_lst})
+
+    agency_choice = st.selectbox("Choisir une agence", agency_sensor_list_str)
+
+    return agency_choice
+
+
+def get_sensor_chosen(agency_sensor_lst: list[tuple[str, int]], agency_n: str) -> int:
+    """from the list agency_sensor_lst, display a selectbox for available sensors is
+    returns the counter_id chosen by the user"""
+    sensor_list_str = [f"{row[1]}" for row in agency_sensor_lst if row[0] == agency_n]
+    sensor_chosen = st.selectbox("Choisir un capteur", sensor_list_str)
+
+    return sensor_chosen
+
+
+# -------------------------------------------------------------------------------------------------
+# time selection
+
+
+def get_min_max_dates(agency_n: str, counter_i: int, parquet_file: str):
+    """returns min and max dates for current sensor"""
+    sensor_df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
+    return min(sensor_df["date"]), max(sensor_df["date"])
+
+
+# Function to get start and end dates for a specific month
+def get_month_dates(month_name, year=datetime.today().year):
+    """get start_date and end_date from a month choice"""
+    month_num = list(calendar.month_name).index(month_name)
+    start_date = datetime(year, month_num, 1)
+    # Find the last day of the month
+    if month_num == 12:  # December
+        end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        end_date = datetime(year, month_num + 1, 1) - timedelta(days=1)
+    return start_date.date(), end_date.date()
+
+
+# Function to get start and end dates for a specific week number
+def get_week_dates(week_number, year=datetime.today().year):
+    """get start_date and end_date from a week choice"""
+    # Get the first day of the year
+    first_day_of_year = datetime(year, 1, 1)
+    # Find the first Sunday of the year
+    first_sunday = first_day_of_year + timedelta(days=6 - first_day_of_year.weekday())
+    # Calculate the start date of the week
+    start_date = first_sunday + timedelta(weeks=week_number - 1)
+    # Calculate the end date (Saturday)
+    end_date = start_date + timedelta(days=6)
+    return start_date.date(), end_date.date()
+
+
+def get_month_period() -> str:
+    """Option 1: Select a certain full month"""
+    st.subheader("Select Month")
+    months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
     ]
+    month_m = st.selectbox("Select a full month:", months)
+    return month_m
 
-    sensor_chosen = st.selectbox("Choisir un capteur", agency_sensor_list_str)
 
-    agency_sensor_dict = dict(zip(agency_sensor_list_str, agency_sensor_lst))
+def get_weeks_period() -> str:
+    """Option 2: Select a certain full week (week number)"""
+    st.subheader("Select week")
+    weeks = list(range(1, 53))  # Week numbers from 1 to 52
+    week_w = st.selectbox("Select a full week:", weeks)
+    return week_w
 
-    return agency_sensor_dict[sensor_chosen]
+
+def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, date):
+    """from the agency and sensor name,
+    display a box to choose start_date and end_date
+    having a min and max dates taken from the df for this sensor
+    :returns: the min and max dates"""
+    st.subheader("Select Date Range")
+
+    # Define min and max date range
+    min_date, max_date = get_min_max_dates(agency_n, counter_i, parquet_file)
+
+    # Date range selection using calendar picker with min and max values
+    start_date = st.date_input(
+        "Start Date",
+        value=min_date,
+        min_value=min_date,
+        max_value=max_date,
+        format="YYYY-MM-DD",
+    )
+    end_date = st.date_input(
+        "End Date",
+        value=max_date,
+        min_value=min_date,
+        max_value=max_date,
+        format="YYYY-MM-DD",
+    )
+
+    # Ensure start date is before end date
+    if start_date > end_date:
+        st.error("Error: End date must be after start date.")
+    else:
+        st.success(f"Selected date range: {start_date} to {end_date}")
+
+    return start_date, end_date
+
+
+# --------------------------------------------------------------------------------------------------
 
 
 def get_sensor_dataframe(
-    agency_n: str, counter_i: int, parquet_file: str
+    agency_n: str, counter_i: int, parquet_file: str, time_delta: (date, date) = None
 ) -> pd.DataFrame:
     """get sensor dataframe"""
     # pylint: disable=C0303
-    query = f"""
-              SELECT * 
-              FROM {parquet_file} 
-              WHERE agency_name = '{agency_n}' and counter_id = {counter_i}::INTEGER
-              ORDER BY agency_name, counter_id, date;
-            """
+
+    if time_delta is None:
+        query = f"""
+                  SELECT * 
+                  FROM {parquet_file} 
+                  WHERE agency_name = '{agency_n}' and counter_id = {counter_i}
+                  ORDER BY agency_name, counter_id, date;
+                """
+    else:
+        query = f"""
+                          SELECT * 
+                          FROM {parquet_file} 
+                          WHERE agency_name = '{agency_n}' and counter_id = {counter_i}
+                          and date >= '{time_delta[0]}'::DATE and date <= '{time_delta[1]}'::DATE
+                          ORDER BY agency_name, counter_id, date;
+                        """
+
     return duckdb.sql(query).df()
 
 
-def display_sensor_dataframe(agency_n: str, counter_i: int, parquet_file: str):
+def display_sensor_dataframe(df: pd.DataFrame):
     """displays the dataframe of the chosen sensor"""
-    sensor_df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
-    st.dataframe(sensor_df)
+    st.dataframe(df)
 
 
-def display_history_graph_for_sensor(agency_n: str, counter_i: int, parquet_file: str):
+def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFrame):
     """displays the history graph of the chosen sensor"""
-    df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
-
     # Melting the dataframe
     df_part = df[["date", "daily_visitor_count", "prev_avg_4_visits"]]
     df_melted = df_part.melt(
@@ -69,9 +189,6 @@ def display_history_graph_for_sensor(agency_n: str, counter_i: int, parquet_file
     )
     # Creating the line chart
     fig = px.line(df_melted, x="date", y="counting_type", color="daily_count")
-
-    ## Create a bar chart using Plotly
-    # fig = px.line(df, x="date", y="daily_visitor_count")  # color='City',
 
     fig.update_layout(
         title=f"Daily traffic for agency {agency_n} - sensor {counter_i}",
@@ -84,7 +201,7 @@ def display_history_graph_for_sensor(agency_n: str, counter_i: int, parquet_file
 
 if __name__ == "__main__":
 
-    # Read the parquet file directly in duckdb (memory costless)
+    # parquet file location (directly read in duckdb (memory costless))
     PARQUET_FILE = (
         "'data/filtered/2024_agencies_daily_visitor_count/"
         "part-00000-0e27bd92-4b26-465a-9cf9-180b61966469-c000.snappy.parquet'"
@@ -92,11 +209,41 @@ if __name__ == "__main__":
 
     agency_sensor_list = get_sensor_list(PARQUET_FILE)
 
-    # Display a list of all sensors to be chosen
-    # find the corresponding sensor agency_name and counter_id
-    agency, sensor = get_sensor_chosen(agency_sensor_list)
+    with st.sidebar:
+        st.title("Sensor selection")
 
-    # print(agency, sensor, PARQUET_FILE)
-    display_sensor_dataframe(agency, sensor, PARQUET_FILE)
+        # Display a list of all sensors to be chosen
+        # find the corresponding sensor agency_name and counter_id
+        agency = get_agency_chosen(agency_sensor_list)
+        sensor = get_sensor_chosen(agency_sensor_list, agency)
 
-    display_history_graph_for_sensor(agency, sensor, PARQUET_FILE)
+        # choose to see traffic weekly, monthly or in a defined window
+        st.title("Time period selection")
+        time_period_choice = st.selectbox(
+            "Choose a time selection method ", ["month", "week", "time period"]
+        )
+        if time_period_choice == "month":
+            month = get_month_period()
+            time_period = get_month_dates(month, 2024)
+            st.write(
+                f"Selected month ({month}): "
+                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+            )
+
+        if time_period_choice == "week":
+            week = get_weeks_period()
+            time_period = get_week_dates(week, 2024)
+            st.write(
+                f"Selected full week ({week}): "
+                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+            )
+
+        if time_period_choice == "time period":
+            time_period = get_time_period(agency, sensor, PARQUET_FILE)
+            st.write(f"Selected date range: {time_period[0]} to {time_period[1]}")
+
+    data_f = get_sensor_dataframe(agency, sensor, PARQUET_FILE, time_period)
+
+    display_sensor_dataframe(data_f)
+
+    display_daily_graph_for_sensor(agency, sensor, data_f)
