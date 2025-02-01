@@ -40,7 +40,7 @@ class Api:  # pylint: disable=R0903
         self.get_route = get_route
 
     def request_api(
-        self, date_string: str, name_of_agency: str, id_of_counter: int = -1
+        self, date_str: str, name_of_agency: str, id_of_counter: int = -1
     ) -> dict | str:
         """
         Sends a GET request to the api and print the response
@@ -49,7 +49,7 @@ class Api:  # pylint: disable=R0903
         try:
             url = (
                 f"{self.base_url}{self.get_route}?"
-                f"date_time={date_string}&"
+                f"date_time={date_str}&"
                 f"agency_name={name_of_agency}&"
                 f"counter_id={id_of_counter}"
             )
@@ -119,16 +119,16 @@ def get_cli_parameters(sys_argv):
 
 def validate_date_format(date_str: str):
     """
-    Validate that date_str corresponds to format 'YYYY-MM-DD_HH:MM'.
+    Validate that date_str corresponds to format 'YYYY-MM-DD HH:MM'.
     """
-    pattern = r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}$"
+    pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
     if not re.match(pattern, date_str):
         raise ValueError(
-            f"Invalid date format: {date_str}. Expected format: YYYY-MM-DD_HH:MM"
+            f"Invalid date format: {date_str}. Expected format: YYYY-MM-DD HH:MM"
         )
     # check that the date is valid
     try:
-        datetime.strptime(date_str, "%Y-%m-%d_%H:%M")
+        datetime.strptime(date_str, "%Y-%m-%d %H:%M")
     except ValueError as e:
         raise ValueError(f"Invalid date content: {date_str}. {e}") from e
 
@@ -161,9 +161,8 @@ def add_random_error_to_row(row_df: dict) -> dict:
     """
     # Prepare the randomness
     # Convert to datetime object for the seed
-    # print(row_df)
     date_string = row_df["date_time"]
-    date_time = datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
+    date_time = datetime.strptime(date_string, "%Y-%m-%d %H:%M")
 
     random_seed = RandomSeed(date_time)  # default: takes only date from the date_time
     time = date_time.strftime("%H%M")
@@ -234,7 +233,7 @@ def replace_random_letter(s):
 #     # find all agency_names and their number of counter
 #     for date in dates:
 #         # put date_str to expected format in the API
-#         date_str = date.strftime("%Y-%m-%d_%H:%M")
+#         date_str = date.strftime("%Y-%m-%d %H:%M")
 #
 #         for agency_name, counter_num in (agencies_df[["agency_name", "counter_number"]]
 #                                             .values.tolist()):
@@ -242,14 +241,14 @@ def replace_random_letter(s):
 #                 return get_single_date_response(event_df, agency_name, counter_id, date_str)
 
 
-def get_single_date_response(event_df, agency_name, counter_id, date_str):
-    json_response, new_row = get_api_response(agency_name, counter_id, date_str)
-    try:
-        event_df = pd.concat([event_df, new_row], ignore_index=True)
-        return event_df
-    except ValueError as v:
-        print(v)
-        print(json_response)
+# def get_single_date_response(render_api,count_df, agency_nam, counter_id, date_str):
+#     json_response, new_df = get_api_response(render_api,agency_nam, counter_id, date_str)
+#     try:
+#         count_df = pd.concat([count_df, new_df], ignore_index=True)
+#         return event_df
+#     except ValueError as v:
+#         print(v)
+#         print(json_response)
 
 
 def initiate_event_df():
@@ -265,7 +264,7 @@ def initiate_event_df():
     )
 
 
-def get_api_response(
+def get_api_response(render_api,
     agency_name: str, counter_id: int, date_str: str
 ) -> (dict | str, dict):
     """request api and get JSON response"""
@@ -291,6 +290,9 @@ def get_api_response(
 #     date_range_string = f"{start_day}-{and_day}"
 #     date_range_string = date_range_string.replace(" ", "_")
 #     return date_range, date_range_string
+
+def clean_date(date_str:str):
+    return date_str.replace(":", "-")
 
 
 if __name__ == "__main__":
@@ -337,8 +339,9 @@ if __name__ == "__main__":
                         print(v)
 
             # Save event_df to CSV
+            cleaned_date_string = clean_date(date_string)
             event_df.to_csv(
-                "data/raw/cli/event_df_all_agencies_" + date_string + ".csv",
+                "data/raw/cli/event_df_all_agencies_" + cleaned_date_string + ".csv",
                 index=False,
             )
         else:

@@ -1,4 +1,5 @@
-""" Data pipeline module to transform raw CSVs to clean parquet """
+""" Data pipeline module to transform raw CSVs with possible errors to clean parquet """
+import os
 
 import duckdb
 from fuzzywuzzy import process
@@ -40,7 +41,7 @@ class DataPipeline:
         """Convert string date_time to timestamp, to date (without time)"""
         return df.withColumn(
             "date",
-            F.to_date(F.to_timestamp(df["date_time"], "yyyy-MM-dd_HH"), "yyyy-MM-dd"),
+            F.to_date(F.to_timestamp(df["date_time"], "yyyy-MM-dd HH:mm"), "yyyy-MM-dd"),
         )
 
     # --------------------------------------------------------------------------------------
@@ -235,7 +236,6 @@ class DataPipeline:
         daily_with_mv_avg_4_weekdays = self.add_mov_avg_4_previous_same_weekdays(
             agg_daily_data_with_weekday
         )
-        # daily_with_mv_avg_4_weekdays.show(20000,truncate=False)
 
         daily_mv_avg_4_w_prev_mv_avg = self.add_previous_mv_avg_4(
             daily_with_mv_avg_4_weekdays
@@ -245,20 +245,39 @@ class DataPipeline:
             daily_mv_avg_4_w_prev_mv_avg
         )
 
-        (
-            daily_with_percent_change.sort(
-                F.col("agency_name"),
-                F.col("counter_id"),
-                F.col("weekday"),
-                F.col("date"),
-            ).show(2000)
-        )
+        # (
+        #     daily_with_percent_change.sort(
+        #         F.col("agency_name"),
+        #         F.col("counter_id"),
+        #         F.col("weekday"),
+        #         F.col("date"),
+        #     ).show(2000)
+        # )
 
-        # write
-        daily_with_percent_change.write.parquet(
-            f'{self.config_dict["output_path"]}' f"agencies_daily_visitor_count",
-            mode="overwrite",
-        )
+        # daily_with_percent_change.show()
+
+        output_path = f'{self.config_dict["output_path"]}/agencies_daily_visitor_count'
+
+        if os.path.exists(output_path):
+            existing_data = spark.read.parquet(output_path)
+
+            # Assuming there is a unique identifier column, e.g., 'id'
+            # You can adjust this logic based on the key or the structure of your data
+            filtered_data = daily_with_percent_change.join(
+                existing_data,
+                on=["date","agency_name","counter_id"],  # Adjust this list to match the key column(s) for uniqueness
+                how="left_anti"
+            )
+            # Write the filtered data in append mode
+            filtered_data.write.mode("append").parquet(output_path)
+
+        else:
+            # Write a new file if it doesn't exist
+            (daily_with_percent_change
+             .write
+             .mode("overwrite")  # Use "overwrite" to write a new file
+             .parquet(output_path)
+             )
 
 
 # ---------------------------------------------------------------------------------
@@ -308,8 +327,9 @@ if __name__ == "__main__":
 
     config = {
         "schema": schema,
-        "file_path": "data/raw/2024/*.csv",
-        "output_path": "data/filtered/2024_",
+        # "file_path": "data/raw/2024/*.csv",
+        "file_path": "data/raw/cli/*.csv",
+        "output_path": "data/filtered",
         "agency_names": agency_names,
     }
 

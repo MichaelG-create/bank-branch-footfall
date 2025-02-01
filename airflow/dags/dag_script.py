@@ -10,7 +10,7 @@ import pendulum
 
 with DAG(
     dag_id="pipeline",
-    description="un DAG à 2 tasks simples",
+    description="hourly extract data from an API, then transform it to a parquet file ",
     start_date=pendulum.datetime(2024, 1, 1, tz="UTC"),
     schedule="0 * * * *",  # every minute 0 (so every hour)
     catchup=False,
@@ -18,7 +18,7 @@ with DAG(
 ) as dag:
     run_this_first = BashOperator(
         task_id="run_first_EXTRACT",
-        bash_command="echo 'hello world!'",
+        bash_command="python3 ~/ProjetPerso/Banking_Agency_Traffic/airflow/dags/test.py",
     )
 
     run_this_second = BashOperator(

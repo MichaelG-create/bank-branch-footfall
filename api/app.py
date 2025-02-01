@@ -43,7 +43,7 @@ async def get_visitor_count(
     :return: visitor count at this moment
     """
     try:
-        date_time_obj = datetime.strptime(date_time, "%Y-%m-%d_%H:%M")
+        date_time_obj = datetime.strptime(date_time, "%Y-%m-%d %H:%M")
 
         agency = agencies_dict[agency_name]
         if counter_id > -1:
