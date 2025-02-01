@@ -1,6 +1,8 @@
 """ Streamlit APP displaying sensors traffic temporal series """
 
 import duckdb
+import pandas as pd
+import plotly.express as px
 import streamlit as st
 
 
@@ -36,8 +38,10 @@ def get_sensor_chosen(agency_sensor_lst: list[tuple[str, int]]) -> tuple[str, in
     return agency_sensor_dict[sensor_chosen]
 
 
-def display_sensor_dataframe(agency_n: str, counter_i: int, parquet_file: str):
-    """displays the dataframe of the chosen sensor"""
+def get_sensor_dataframe(
+    agency_n: str, counter_i: int, parquet_file: str
+) -> pd.DataFrame:
+    """get sensor dataframe"""
     # pylint: disable=C0303
     query = f"""
               SELECT * 
@@ -45,11 +49,28 @@ def display_sensor_dataframe(agency_n: str, counter_i: int, parquet_file: str):
               WHERE agency_name = '{agency_n}' and counter_id = {counter_i}::INTEGER
               ORDER BY agency_name, counter_id, date;
             """
-    # duckdb.sql(query).show()
-    print(query)
-    sensor_df = duckdb.sql(query).df()
-    print(sensor_df)
+    return duckdb.sql(query).df()
+
+
+def display_sensor_dataframe(agency_n: str, counter_i: int, parquet_file: str):
+    """displays the dataframe of the chosen sensor"""
+    sensor_df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
     st.dataframe(sensor_df)
+
+
+def display_history_graph_for_sensor(agency_n: str, counter_i: int, parquet_file: str):
+    """displays the history graph of the chosen sensor"""
+    df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
+    ## Create a bar chart using Plotly
+    fig = px.line(df, x="date", y="daily_visitor_count")  # color='City',
+
+    fig.update_layout(
+        title=f"Daily traffic for agency {agency_n} - sensor {counter_i}",
+        xaxis_title="Date",
+        yaxis_title="Daily visitors",
+    )
+    ## Display the figure in Streamlit
+    st.plotly_chart(fig)
 
 
 if __name__ == "__main__":
@@ -66,5 +87,7 @@ if __name__ == "__main__":
     # find the corresponding sensor agency_name and counter_id
     agency, sensor = get_sensor_chosen(agency_sensor_list)
 
-    print(agency, sensor, PARQUET_FILE)
+    # print(agency, sensor, PARQUET_FILE)
     display_sensor_dataframe(agency, sensor, PARQUET_FILE)
+
+    display_history_graph_for_sensor(agency, sensor, PARQUET_FILE)
