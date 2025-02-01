@@ -1,15 +1,11 @@
-""" Data pipeline module to transform data from raw CSVs """
+""" Data pipeline module to transform raw CSVs to clean parquet """
 
 import duckdb
-
 from fuzzywuzzy import process
-
-
-from pyspark.sql.functions import udf
-
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, IntegerType, StringType
+from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
+from pyspark.sql.functions import udf
+from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
 
 def get_closest_match(word):
@@ -26,6 +22,8 @@ get_closest_match_udf = udf(get_closest_match, StringType())
 # ---------------------------------------------------------------------------------
 class DataPipeline:
     """data pipeline to transform data from raw CSVs"""
+
+    # pylint: disable=R0904
 
     def __init__(self, spark_session, config_dict):
         self.spark_session = spark_session
@@ -50,23 +48,22 @@ class DataPipeline:
         """clean data in date_time, agency_name, counter_id, visitor_count, and unit"""
         df = self.clean_agency_name(df)
         df = self.clean_visitor_count(df)
+        df = self.clean_counter_id(df)
+        df = self.clean_unit(df)
+
         return df
 
+    # --------------------------------------------------------------------------------------
     def clean_agency_name(self, df):
-        """drop null, lower and replace white spaces in agency_names by underscores"""
+        """drop nulls, lower agency_name, replace white spaces by underscores"""
         df = df.filter(F.col("agency_name").isNotNull())
         df = df.withColumn("agency_name", F.lower(F.col("agency_name")))
         df = df.withColumn(
             "agency_name", F.regexp_replace(F.col("agency_name"), " ", "_")
         )
-        print("here's the matching words df")
 
         filtered_df = self.find_matching_agency_name(df)
-        df = self.correct_agency_name(df, filtered_df)
-
-        # df.select("agency_name").distinct().sort("agency_name").show(1000, truncate=False)
-
-        return df
+        return self.correct_agency_name(df, filtered_df)
 
     def find_matching_agency_name(self, df):
         """lists the distinct agencies names from df
@@ -117,33 +114,53 @@ class DataPipeline:
         return result_df
 
     # --------------------------------------------------------------------------------------
-
     def clean_visitor_count(self, df):
-        """Check for any non-numeric values in visitor_count and replace them by 0
+        """Drop any non-numeric or zero or negative values in visitor_count
         (includes null)"""
-        df = self.remove_non_numeric_visitor_count(df)
+        df = self.drop_non_numeric_visitor_count(df)
         df = self.drop_negative_visitor_count(df)
         return df
 
-    def remove_non_numeric_visitor_count(self, df):
-        """Check for any non-numeric values in visitor_count and replace them by 0
+    def drop_non_numeric_visitor_count(self, df):
+        """Drop any non-numeric values in visitor_count
         (includes null)"""
-        return df.withColumn(
-            "visitor_count",
-            F.when(
-                F.col("visitor_count").rlike(r"^\d+$"),
-                F.col("visitor_count").cast(IntegerType()),
-            ).otherwise(0),
-        )
+        return df.filter(F.col("visitor_count").rlike(r"^\d+$"))
 
     def drop_negative_visitor_count(self, df):
-        """closed times (-1) or broken sensor (-10) -> visitor_count = 0"""
+        """drop lines : closed times (-1) or broken sensor (-10)"""
         return df.filter(F.col("visitor_count") > 0)
+
+    # --------------------------------------------------------------------------------------
+    def clean_counter_id(self, df):
+        """drop non-numeric values in counter_id (includes null)"""
+        df = self.drop_non_numeric_counter_id(df)
+        df = self.drop_negative_counter_id(df)
+        df = self.drop_outlier_counter_id(df)
+        return df
+
+    def drop_non_numeric_counter_id(self, df):
+        """Drop non-numeric values in counter_id (includes null)"""
+        return df.filter(F.col("counter_id").rlike(r"^\d+$"))
+
+    def drop_negative_counter_id(self, df):
+        """counter_id must be >=0 and int"""
+        return df.filter(F.col("counter_id") >= 0)
+
+    def drop_outlier_counter_id(self, df):
+        """counter_id must be >=0 and int"""
+        return df.filter(F.col("counter_id") <= 10)
+
+    # --------------------------------------------------------------------------------------
+    def clean_unit(self, df):
+        """drop nulls, lower 'unit', keep only exact matching to 'visitors'"""
+        df = df.filter(F.col("unit").isNotNull())
+        df = df.withColumn("unit", F.lower(F.col("unit")))
+        return df.filter(F.col("unit") == "visitors")
 
     # --------------------------------------------------------------------------------------
     def aggregate_visitor_count_daily(self, df):
         """Perform aggregation by date_time, agency_name, and unit"""
-        return df.groupBy("date", "agency_name", "unit").agg(
+        return df.groupBy("date", "agency_name", "counter_id", "unit").agg(
             F.sum("visitor_count").alias("daily_visitor_count")
         )
 
@@ -152,10 +169,43 @@ class DataPipeline:
         df_with_month = df.withColumn("month", F.month("date")).withColumn(
             "year", F.year("date")
         )
-        # df_with_month.show()
-        # monthly_count_df.sort(F.col("month"), F.col("monthly_visitor_count") ).show(2000)
-        return df_with_month.groupBy("year", "month", "agency_name").agg(
+        return df_with_month.groupBy("year", "month", "agency_name", "counter_id").agg(
             F.sum("daily_visitor_count").alias("monthly_visitor_count")
+        )
+
+    def add_weekday(self, df):
+        """Add weekday column to df"""
+        return df.withColumn("weekday", F.dayofweek(F.col("date")))
+
+    def add_mov_avg_4_previous_same_weekdays(self, df):
+        """Moving average 4 previous weekdays"""
+        window_spec = (
+            Window.partitionBy("agency_name", "counter_id", "weekday")
+            .orderBy("date")
+            .rowsBetween(-3, 0)
+        )  # 3 preceding lines up to current one
+        # avg over the window
+        return df.withColumn(
+            "avg_visits_4_weekday",
+            F.round(F.avg(F.col("daily_visitor_count")).over(window_spec)),
+        )
+
+    def add_previous_mv_avg_4(self, df):
+        """add previous column of moving average 4 previous weekdays"""
+        window_spec = Window.partitionBy(
+            "agency_name", "counter_id", "weekday"
+        ).orderBy("date")
+        return df.withColumn(
+            "prev_avg_4_visits", F.lag("avg_visits_4_weekday", 1).over(window_spec)
+        )
+
+    def add_pct_change_over_mv_avg_4(self, df):
+        """add pct change over moving average 4 previous weekdays"""
+        return df.withColumn(
+            "pct_change",
+            F.round(
+                100 * (F.col("daily_visitor_count") / F.col("prev_avg_4_visits") - 1)
+            ),
         )
 
     # -----------------------------------------------------------------------------------------
@@ -172,21 +222,42 @@ class DataPipeline:
         # clean_data.show()
 
         # transform
-        aggregated_daily_data = self.aggregate_visitor_count_daily(clean_data)
-        # aggregated_daily_data.show()
+        agg_daily_data = self.aggregate_visitor_count_daily(clean_data)
+        # agg_daily_data.show()
 
-        aggregated_monthly_data = self.aggregate_visitor_count_monthly(
-            aggregated_daily_data
+        # # in case it's used later on for stats
+        # agg_monthly_data = self.aggregate_visitor_count_monthly(
+        #     agg_daily_data
+        # )
+
+        agg_daily_data_with_weekday = self.add_weekday(agg_daily_data)
+
+        daily_with_mv_avg_4_weekdays = self.add_mov_avg_4_previous_same_weekdays(
+            agg_daily_data_with_weekday
         )
+        # daily_with_mv_avg_4_weekdays.show(20000,truncate=False)
+
+        daily_mv_avg_4_w_prev_mv_avg = self.add_previous_mv_avg_4(
+            daily_with_mv_avg_4_weekdays
+        )
+
+        daily_with_percent_change = self.add_pct_change_over_mv_avg_4(
+            daily_mv_avg_4_w_prev_mv_avg
+        )
+
         (
-            aggregated_monthly_data.sort(
-                F.col("agency_name"), F.col("month"), F.col("monthly_visitor_count")
+            daily_with_percent_change.sort(
+                F.col("agency_name"),
+                F.col("counter_id"),
+                F.col("weekday"),
+                F.col("date"),
             ).show(2000)
         )
 
         # write
-        aggregated_monthly_data.write.parquet(
-            self.config_dict["output_path"], mode="overwrite"
+        daily_with_percent_change.write.parquet(
+            f'{self.config_dict["output_path"]}' f"agencies_daily_visitor_count",
+            mode="overwrite",
         )
 
 
@@ -238,7 +309,7 @@ if __name__ == "__main__":
     config = {
         "schema": schema,
         "file_path": "data/raw/2024/*.csv",
-        "output_path": "data/2024_agencies_month_visitor_count.parquet",
+        "output_path": "data/filtered/2024_",
         "agency_names": agency_names,
     }
 
