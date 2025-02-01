@@ -61,8 +61,17 @@ def display_sensor_dataframe(agency_n: str, counter_i: int, parquet_file: str):
 def display_history_graph_for_sensor(agency_n: str, counter_i: int, parquet_file: str):
     """displays the history graph of the chosen sensor"""
     df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
+
+    # Melting the dataframe
+    df_part = df[["date", "daily_visitor_count", "prev_avg_4_visits"]]
+    df_melted = df_part.melt(
+        id_vars="date", var_name="daily_count", value_name="counting_type"
+    )
+    # Creating the line chart
+    fig = px.line(df_melted, x="date", y="counting_type", color="daily_count")
+
     ## Create a bar chart using Plotly
-    fig = px.line(df, x="date", y="daily_visitor_count")  # color='City',
+    # fig = px.line(df, x="date", y="daily_visitor_count")  # color='City',
 
     fig.update_layout(
         title=f"Daily traffic for agency {agency_n} - sensor {counter_i}",
