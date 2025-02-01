@@ -1,13 +1,14 @@
 """ Streamlit APP displaying sensors traffic temporal series """
 
+# pylint: disable=C0301
 # ┌────────────┬─────────────────┬────────────┬──────────┬─────────────────────┬─────────┬──────────────────────┬───────────────────┬────────────┐
 # │    date    │   agency_name   │ counter_id │   unit   │ daily_visitor_count │ weekday │ avg_visits_4_weekday │ prev_avg_4_visits │ pct_change │
 # │    date    │     varchar     │   int32    │ varchar  │        int64        │  int32  │        double        │      double       │   double   │
 # ├────────────┼─────────────────┼────────────┼──────────┼─────────────────────┼─────────┼──────────────────────┼───────────────────┼────────────┤
 # │ 2024-05-12 │ aix_les_bains_1 │          0 │ visitors │                 100 │       1 │                100.0 │              NULL │       NULL │
 # └────────────┴─────────────────┴────────────┴──────────┴─────────────────────┴─────────┴──────────────────────┴───────────────────┴────────────┘
+
 import duckdb
-import streamlit as st
 
 # Read the parquet file directly in duckdb (memory costless)
 PARQUET_FILE = (
