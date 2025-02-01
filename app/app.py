@@ -1,6 +1,7 @@
 """ Streamlit APP displaying sensors traffic temporal series """
 
-from datetime import date
+import calendar
+from datetime import date, datetime, timedelta
 
 import duckdb
 import pandas as pd
@@ -45,10 +46,70 @@ def get_sensor_chosen(agency_sensor_lst: list[tuple[str, int]], agency_n: str) -
     return sensor_chosen
 
 
+# -------------------------------------------------------------------------------------------------
+# time selection
+
+
 def get_min_max_dates(agency_n: str, counter_i: int, parquet_file: str):
     """returns min and max dates for current sensor"""
     sensor_df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
-    return (min(sensor_df["date"]), max(sensor_df["date"]))
+    return min(sensor_df["date"]), max(sensor_df["date"])
+
+
+# Function to get start and end dates for a specific month
+def get_month_dates(month_name, year=datetime.today().year):
+    """get start_date and end_date from a month choice"""
+    month_num = list(calendar.month_name).index(month_name)
+    start_date = datetime(year, month_num, 1)
+    # Find the last day of the month
+    if month_num == 12:  # December
+        end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+    else:
+        end_date = datetime(year, month_num + 1, 1) - timedelta(days=1)
+    return start_date.date(), end_date.date()
+
+
+# Function to get start and end dates for a specific week number
+def get_week_dates(week_number, year=datetime.today().year):
+    """get start_date and end_date from a week choice"""
+    # Get the first day of the year
+    first_day_of_year = datetime(year, 1, 1)
+    # Find the first Sunday of the year
+    first_sunday = first_day_of_year + timedelta(days=6 - first_day_of_year.weekday())
+    # Calculate the start date of the week
+    start_date = first_sunday + timedelta(weeks=week_number - 1)
+    # Calculate the end date (Saturday)
+    end_date = start_date + timedelta(days=6)
+    return start_date.date(), end_date.date()
+
+
+def get_month_period() -> str:
+    """Option 1: Select a certain full month"""
+    st.subheader("Select Month")
+    months = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December",
+    ]
+    month_m = st.selectbox("Select a full month:", months)
+    return month_m
+
+
+def get_weeks_period() -> str:
+    """Option 2: Select a certain full week (week number)"""
+    st.subheader("Select week")
+    weeks = list(range(1, 53))  # Week numbers from 1 to 52
+    week_w = st.selectbox("Select a full week:", weeks)
+    return week_w
 
 
 def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, date):
@@ -56,7 +117,7 @@ def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, 
     display a box to choose start_date and end_date
     having a min and max dates taken from the df for this sensor
     :returns: the min and max dates"""
-    st.title("Select Date Range")
+    st.subheader("Select Date Range")
 
     # Define min and max date range
     min_date, max_date = get_min_max_dates(agency_n, counter_i, parquet_file)
@@ -84,6 +145,9 @@ def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, 
         st.success(f"Selected date range: {start_date} to {end_date}")
 
     return start_date, end_date
+
+
+# --------------------------------------------------------------------------------------------------
 
 
 def get_sensor_dataframe(
@@ -146,17 +210,37 @@ if __name__ == "__main__":
     agency_sensor_list = get_sensor_list(PARQUET_FILE)
 
     with st.sidebar:
-        st.subheader("Sensor selection")
+        st.title("Sensor selection")
 
         # Display a list of all sensors to be chosen
         # find the corresponding sensor agency_name and counter_id
         agency = get_agency_chosen(agency_sensor_list)
         sensor = get_sensor_chosen(agency_sensor_list, agency)
-        time_period = get_time_period(agency, sensor, PARQUET_FILE)
-        # time_period = get_month_selection(agency, sensor, PARQUET_FILE, time_period)
-        # time_period = get_week_selection(agency, sensor, PARQUET_FILE, time_period)
 
-        # choose a weekly traffic or monthly
+        # choose to see traffic weekly, monthly or in a defined window
+        st.title("Time period selection")
+        time_period_choice = st.selectbox(
+            "Choose a time selection method ", ["month", "week", "time period"]
+        )
+        if time_period_choice == "month":
+            month = get_month_period()
+            time_period = get_month_dates(month, 2024)
+            st.write(
+                f"Selected month ({month}): "
+                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+            )
+
+        if time_period_choice == "week":
+            week = get_weeks_period()
+            time_period = get_week_dates(week, 2024)
+            st.write(
+                f"Selected full week ({week}): "
+                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+            )
+
+        if time_period_choice == "time period":
+            time_period = get_time_period(agency, sensor, PARQUET_FILE)
+            st.write(f"Selected date range: {time_period[0]} to {time_period[1]}")
 
     data_f = get_sensor_dataframe(agency, sensor, PARQUET_FILE, time_period)
 
