@@ -5,6 +5,10 @@ and its method get_visitor_count
 at a certain date
 e.g. :
 /get_visitor_count?date_time=2025-05-29_09:05
+
+TO LAUNCH it locally :
+in this project folder, with venv activated :
+uvicorn api.app:app --reload
 """
 
 from datetime import datetime
