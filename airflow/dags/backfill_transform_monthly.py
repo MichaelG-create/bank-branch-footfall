@@ -11,13 +11,18 @@ import logging
         "start_date": datetime(2024, 1, 1, 0, 0),
         "end_date": datetime(2025, 1, 1, 0, 0),
     },
-    schedule="@monthly",  # Monthly schedule for backfill
+    schedule=None,  # Monthly schedule for backfill
+    # schedule="@monthly",  # Monthly schedule for backfill
     catchup=True,
 )
 def backfill_transform_monthly():
 
     @task()
     def process_monthly_data(**kwargs):
+        # Get the theoretical execution date from the context
+        conf = kwargs.get("dag_run").conf or {}  # Récupérer la conf
+        execution_date = execution_date = conf.get("execution_date", "No execution_date provided")
+
         logging.info("Running data_pipeline.py...")
         result = subprocess.run(
             [

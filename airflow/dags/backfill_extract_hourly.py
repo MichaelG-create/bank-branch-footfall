@@ -10,7 +10,8 @@ import os
         "start_date": datetime(2024, 1, 1, 0, 0),
         "end_date": datetime(2025, 1, 1, 0, 0),
     },
-    schedule="@hourly",  # Hourly schedule for backfill
+    schedule=None,  # Hourly schedule for backfill
+    # schedule="@hourly",  # Hourly schedule for backfill
     catchup=True,
 )
 def backfill_extract_hourly():
@@ -18,7 +19,8 @@ def backfill_extract_hourly():
     @task()
     def process_hourly_data(**kwargs):
         # Get the theoretical execution date from the context
-        execution_date = kwargs["execution_date"]
+        conf = kwargs.get("dag_run").conf or {}  # Récupérer la conf
+        execution_date = execution_date = conf.get("execution_date", "No execution_date provided")
         theoretical_time = execution_date.strftime("%Y-%m-%d %H:%M")
 
         # Use the theoretical time in the bash command
