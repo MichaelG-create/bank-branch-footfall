@@ -34,7 +34,6 @@ pathspec==0.12.1
 pillow==11.1.0
 platformdirs==4.3.6
 plotly
-protobuf==5.29.3
 py4j==0.10.9.7
 pyarrow==19.0.0
 pydantic==2.10.4
