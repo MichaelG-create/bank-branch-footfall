@@ -121,10 +121,12 @@ def validate_date_format(date_str: str):
     """
     Validate that date_str corresponds to format 'YYYY-MM-DD HH:MM'.
     """
+    print(f"Received date string: '{date_str}'")
+
     pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
     if not re.match(pattern, date_str):
         raise ValueError(
-            f"Invalid date format: {date_str}. Expected format: YYYY-MM-DD HH:MM"
+            f"Invalid date format: {date_str}. Expected format: YYYY-mm-dd HH:MM"
         )
     # check that the date is valid
     try:
@@ -264,8 +266,8 @@ def initiate_event_df():
     )
 
 
-def get_api_response(render_api,
-    agency_name: str, counter_id: int, date_str: str
+def get_api_response(
+    render_api, agency_name: str, counter_id: int, date_str: str
 ) -> (dict | str, dict):
     """request api and get JSON response"""
     json_response = render_api.request_api(date_str, agency_name, counter_id)
@@ -291,13 +293,18 @@ def get_api_response(render_api,
 #     date_range_string = date_range_string.replace(" ", "_")
 #     return date_range, date_range_string
 
-def clean_date(date_str:str):
+
+def clean_date(date_str: str):
     return date_str.replace(":", "-")
 
 
 if __name__ == "__main__":
+
+    # validate_date_format("2025-02-02 00:14")  # Should pass
+    # validate_date_format('2025-02-02 00:10')
     # local db settings
-    PATH_DB = "~/ProjetPerso/Banking_Agency_Traffic/api/data_app/db/agencies.duckdb"
+    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PATH_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 
     # API settings
@@ -341,7 +348,11 @@ if __name__ == "__main__":
             # Save event_df to CSV
             cleaned_date_string = clean_date(date_string)
             event_df.to_csv(
-                "data/raw/cli/event_df_all_agencies_" + cleaned_date_string + ".csv",
+                PROJECT_PATH
+                + "data/raw/cli/"
+                + "event_df_all_agencies_"
+                + cleaned_date_string
+                + ".csv",
                 index=False,
             )
         else:
