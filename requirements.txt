@@ -128,7 +128,7 @@ gitdb==4.0.12
 GitPython==3.1.44
 google-auth==2.38.0
 google-re2==1.1.20240702
-googleapis-common-protos==1.66.0
+googleapis-common-protos
 graphviz==0.20.3
 greenlet==3.1.1
 grpcio==1.68.1
@@ -172,7 +172,7 @@ opentelemetry-exporter-otlp==1.27.0
 opentelemetry-exporter-otlp-proto-common==1.27.0
 opentelemetry-exporter-otlp-proto-grpc==1.27.0
 opentelemetry-exporter-otlp-proto-http==1.27.0
-opentelemetry-proto==1.27.0
+opentelemetry-proto
 opentelemetry-sdk==1.27.0
 opentelemetry-semantic-conventions==0.48b0
 ordered-set==4.1.0
@@ -186,7 +186,7 @@ plotly==6.0.0
 pluggy==1.5.0
 prison==0.2.1
 propcache==0.2.1
-protobuf==5.29.3
+protobuf
 psutil==6.1.0
 py4j==0.10.9.7
 pyarrow==19.0.0
@@ -226,7 +226,7 @@ SQLAlchemy-JSONField==1.0.2
 SQLAlchemy-Utils==0.41.2
 sqlparse==0.5.3
 starlette==0.41.3
-streamlit==1.41.1
+streamlit
 tabulate==0.9.0
 tenacity==9.0.0
 termcolor==2.5.0
