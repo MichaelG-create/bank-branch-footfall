@@ -5,9 +5,12 @@ to query the api directly on render.com here:
 https://simulated-banking-agency-traffic-counters.onrender.com/get_visitor_count?
 date_time=2025-05-29_09:00&agency_name=Lyon_1&counter_id=0
 Loop on multiple dates and hours to create analytical reports
+
+CLI usage :
+python3 query_api.py
 """
 
-import calendar
+# import calendar
 import re
 import string
 import sys
@@ -66,47 +69,51 @@ class Api:  # pylint: disable=R0903
 # ----------------------------------------------------------------------------------------------
 #                       SINGLE DATE REQUEST FROM CLI PARAMETERS
 # ----------------------------------------------------------------------------------------------
-def perform_single_date_request(target_api):
+def get_this_date_agency_counter_count(
+    target_api, date_string, agency_nam, counter_id
+) -> pd.DataFrame | None:
     """
     perform a single request using CLI parameters
     writes the line obtained in 'data.csv' to disk
     TESTING purpose
     """
-    validate_cli_parameters()
-    date_string, agency_nam, id_counter = get_cli_parameters()
-    validate_date_format(date_string)
-    # request api and obtain JSON response
-    json_respons = target_api.request_api(date_string, agency_nam, id_counter)
-    # Load JSON data into a pandas DataFrame
-
     try:
-        data_f = pd.DataFrame([json_respons])
-        # Save DataFrame to CSV
-        data_f.to_csv("data.csv", index=False)
-
+        # request api and obtain JSON response
+        json_response = target_api.request_api(date_string, agency_nam, counter_id)
+        # Load JSON data into a pandas DataFrame
+        return pd.DataFrame([json_response])
     except ValueError as e:
         print(e)
-        print(json_respons)
+        # print(json_response)
+        return None
 
 
-def validate_cli_parameters():
+def validate_cli_parameters(sys_argv, m=2, n=4):
     """Check parameters validity for CLI"""
     # check passed arguments
-    if not 3 <= len(sys.argv) <= 4:
+    if not m <= len(sys_argv) <= n:
         print("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
         sys.exit(1)  # stops with an error code
 
 
-def get_cli_parameters():
-    """return the 3 parameters from CLI as a tuple"""
-    date_string = sys.argv[1]
-    agency_name_string = sys.argv[2]
+def get_cli_parameters(sys_argv):
+    """return the 3 parameters : date, agency_name, counter_id
+    from CLI as a tuple"""
+
+    date_string = sys_argv[1]
+
+    # get the facultative argument agency_name
+    if len(sys_argv) >= 3:
+        agency_name_str = sys_argv[2]
+    else:
+        agency_name_str = None
+
     # get the facultative argument counter_id
-    if len(sys.argv) == 4:
-        counter_id_int = int(sys.argv[3])
+    if len(sys_argv) == 4:
+        counter_id_int = int(sys_argv[3])
     else:
         counter_id_int = -1
-    return date_string, agency_name_string, counter_id_int
+    return date_string, agency_name_str, counter_id_int
 
 
 # ----------------------------------------------------------------------------------------------
@@ -114,16 +121,18 @@ def get_cli_parameters():
 
 def validate_date_format(date_string: str):
     """
-    Validate that date_string corresponds to format 'YYYY-MM-DD_HH:MM'.
+    Validate that date_string corresponds to format 'YYYY-MM-DD HH:MM'.
     """
-    pattern = r"^\d{4}-\d{2}-\d{2}_\d{2}:\d{2}$"
+    print(f"Received date string: '{date_string}'")
+
+    pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
     if not re.match(pattern, date_string):
         raise ValueError(
-            f"Invalid date format: {date_string}. Expected format: YYYY-MM-DD_HH:MM"
+            f"Invalid date format: {date_string}. Expected format: YYYY-mm-dd HH:MM"
         )
     # check that the date is valid
     try:
-        datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
+        datetime.strptime(date_string, "%Y-%m-%d %H:%M")
     except ValueError as e:
         raise ValueError(f"Invalid date content: {date_string}. {e}") from e
 
@@ -156,9 +165,8 @@ def add_random_error_to_row(row_df: dict) -> dict:
     """
     # Prepare the randomness
     # Convert to datetime object for the seed
-    # print(row_df)
     date_string = row_df["date_time"]
-    date_time = datetime.strptime(date_string, "%Y-%m-%d_%H:%M")
+    date_time = datetime.strptime(date_string, "%Y-%m-%d %H:%M")
 
     random_seed = RandomSeed(date_time)  # default: takes only date from the date_time
     time = date_time.strftime("%H%M")
@@ -220,82 +228,152 @@ def replace_random_letter(s):
     return new_string
 
 
+# def get_df_for_all_agencies_in_date_range(
+#         agencies_df: pd.DataFrame, dates:pd.date_range()
+#         ) -> pd.DataFrame:
+#
+#     event_df = initiate_event_df()
+#
+#     # find all agency_names and their number of counter
+#     for date in dates:
+#         # put date_string to expected format in the API
+#         date_string = date.strftime("%Y-%m-%d %H:%M")
+#
+#         for agency_name, counter_num in (agencies_df[["agency_name", "counter_number"]]
+#                                             .values.tolist()):
+#             for counter_id in range(counter_num):
+#                 return get_single_date_response(event_df, agency_name, counter_id, date_string)
+
+
+# def get_single_date_response(render_api,count_df, agency_nam, counter_id, date_string):
+#     json_response, new_df = get_api_response(render_api,agency_nam, counter_id, date_string)
+#     try:
+#         count_df = pd.concat([count_df, new_df], ignore_index=True)
+#         return event_df
+#     except ValueError as v:
+#         print(v)
+#         print(json_response)
+
+
+def initiate_event_df():
+    """if df does not exist, create it empty"""
+    return pd.DataFrame(
+        columns=[
+            "date_time",
+            "agency_name",
+            "counter_id",
+            "visitor_count",
+            "unit",
+        ]
+    )
+
+
+def get_api_response(
+    api, agency_nam: str, counter_id: int, date_string: str
+) -> (dict | str, dict):
+    """request api and get JSON response"""
+    json_response = api.request_api(date_string, agency_nam, counter_id)
+    new_line = add_random_error_to_row(json_response)
+    new_line = pd.DataFrame([new_line])
+    # Load cumulatively JSON data into a pandas DataFrame
+    return json_response, new_line
+
+
+# def get_date_range(year, month)->(pd.date_range(), str):
+#     """
+#     :param month: get the date range within a month
+#     :param year: get the date range within a year
+#     :return:
+#     """
+#     last_day = calendar.monthrange(year, month)[1]
+#     start_day = f"{year}-{month:02}-01"
+#     and_day = f"{year}-{month:02}-{last_day}"
+#     date_range = pd.date_range(
+#         start=f"{start_day} 00:00", end=f"{and_day} 23:00", freq="h"
+#     )
+#     date_range_string = f"{start_day}-{and_day}"
+#     date_range_string = date_range_string.replace(" ", "_")
+#     return date_range, date_range_string
+
+
+def clean_date(date_string: str):
+    """replace the semicolon by an underscore for the date_time in the filename"""
+    return date_string.replace(":", "-")
+
+
 if __name__ == "__main__":
+
     # local db settings
-    PATH_DB = "/home/michael/ProjetPerso/Banking_Agency_Traffic/api/data_app/db/agencies.duckdb"
+    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PATH_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 
     # API settings
     # BASE_URL = "https://simulated-banking-agency-traffic-counters.onrender.com"
-    BASE_URL = "http://127.0.0.1:8000"
+    BASE_URL = (
+        "http://127.0.0.1:8000"  # needs API to be running (or use render directly)
+    )
     GET_ROUTE = "/get_visitor_count"
 
     # Create the api object
     render_api = Api(BASE_URL, GET_ROUTE)
 
-    # Doing request from CLI, one at a time (1 date_time, 1 agency, 1 counter_id) (single row)
+    # Request from CLI: 1 date_time, (+1 agency, (+1 counter_id)) (single row)
     if len(sys.argv) >= 2:
-        perform_single_date_request(render_api)
+        # 1 date_time : requests all agencies sensors
+        validate_cli_parameters(sys.argv)
+        date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
+        validate_date_format(date_str)
 
-    else:
-        # prepare the time_slice of the data
-        YEAR = 2024
-        MONTH = 1
-
-        for month_i in range(2, 12 + 1):
-            MONTH = month_i
-            LAST_DAY_OF_THE_MONTH = calendar.monthrange(YEAR, MONTH)[1]
-
-            START_DATE = f"{YEAR}-{MONTH:02}-01"
-            END_DATE = f"{YEAR}-{MONTH:02}-{LAST_DAY_OF_THE_MONTH}"
-
-            DATE_RANGE = pd.date_range(
-                start=f"{START_DATE} 00:00", end=f"{END_DATE} 23:00", freq="h"
-            )
-
-            DATE_RANGE_STR = f"{START_DATE}-{END_DATE}"
-            DATE_RANGE_STR = DATE_RANGE_STR.replace(" ", "_")
-
+        if len(sys.argv) == 2:
+            # loop over all agencies and sensors
             # use local database to load agency_name and corresponding counter_num
             agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
 
-            # initiate the df
-            event_df = pd.DataFrame(
-                columns=[
-                    "date_time",
-                    "agency_name",
-                    "counter_id",
-                    "visitor_count",
-                    "unit",
-                ]
-            )
-            # find all agency_names and their number of counter
-            # loop on it in the API
-            for date_str in DATE_RANGE:
-                # put date_str to expected format in the API
-                date_str = date_str.strftime("%Y-%m-%d_%H:%M")
+            # init event_df
+            event_df = initiate_event_df()
 
-                for agency_name, counter_num in agency_df[
-                    ["agency_name", "counter_number"]
-                ].values.tolist():
+            # loop over all agencies and sensors
+            for agency_name, counter_num in agency_df[
+                ["agency_name", "counter_number"]
+            ].values.tolist():
+                for id_counter in range(counter_num):
+                    new_row = get_this_date_agency_counter_count(
+                        render_api, date_str, agency_name, id_counter
+                    )
+                    try:
+                        event_df = pd.concat([event_df, new_row], ignore_index=True)
+                    except ValueError as v:
+                        print(v)
 
-                    for counter_id in range(counter_num):
-
-                        # request api and get JSON response
-                        json_response = render_api.request_api(
-                            date_str, agency_name, counter_id
-                        )
-                        new_row = add_random_error_to_row(json_response)
-                        new_row = pd.DataFrame([new_row])
-                        # Load cumulatively JSON data into a pandas DataFrame
-                        try:
-                            event_df = pd.concat([event_df, new_row], ignore_index=True)
-                        except ValueError as v:
-                            print(v)
-                            print(json_response)
-
-            # Save DataFrame to CSV
+            # Save event_df to CSV
+            cleaned_date_string = clean_date(date_str)
             event_df.to_csv(
-                "data/raw/events_all_agencies_counters_" + DATE_RANGE_STR + ".csv",
+                PROJECT_PATH
+                + "data/raw/cli/"
+                + "event_df_all_agencies_"
+                + cleaned_date_string
+                + ".csv",
                 index=False,
             )
+        else:
+            pass
+
+    # else:
+    #     # prepare the time_slice of the data
+    #     YEAR = 2024
+    #
+    #     # use local database to load agency_name and corresponding counter_num
+    #     agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+    #
+    #     for month_i in range(1, 12 + 1):
+    #         date_range, date_range_str = get_date_range(YEAR, month_i)
+    #
+    #         # get the df for all agencies within the date_range
+    #         event_df = get_df_for_all_agencies_in_date_range(agency_df, date_range)
+    #
+    #         # Save DataFrame to CSV
+    #         event_df.to_csv(
+    #             "data/raw/back_fill/events_all_agencies_counters_" + date_range_str + ".csv",
+    #             index=False,
+    #         )

@@ -1,11 +1,14 @@
-""" Data pipeline module to transform raw CSVs to clean parquet """
+""" Data pipeline module to transform raw CSVs with possible errors to clean parquet """
+
+import os
 
 import duckdb
 from fuzzywuzzy import process
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
 from pyspark.sql.functions import udf
-from pyspark.sql.types import IntegerType, StringType, StructField, StructType
+from pyspark.sql.types import (DateType, DoubleType, IntegerType, LongType,
+                               StringType, StructField, StructType)
 
 
 def get_closest_match(word):
@@ -40,7 +43,9 @@ class DataPipeline:
         """Convert string date_time to timestamp, to date (without time)"""
         return df.withColumn(
             "date",
-            F.to_date(F.to_timestamp(df["date_time"], "yyyy-MM-dd_HH"), "yyyy-MM-dd"),
+            F.to_date(
+                F.to_timestamp(df["date_time"], "yyyy-MM-dd HH:mm"), "yyyy-MM-dd"
+            ),
         )
 
     # --------------------------------------------------------------------------------------
@@ -235,7 +240,6 @@ class DataPipeline:
         daily_with_mv_avg_4_weekdays = self.add_mov_avg_4_previous_same_weekdays(
             agg_daily_data_with_weekday
         )
-        # daily_with_mv_avg_4_weekdays.show(20000,truncate=False)
 
         daily_mv_avg_4_w_prev_mv_avg = self.add_previous_mv_avg_4(
             daily_with_mv_avg_4_weekdays
@@ -245,20 +249,59 @@ class DataPipeline:
             daily_mv_avg_4_w_prev_mv_avg
         )
 
-        (
-            daily_with_percent_change.sort(
-                F.col("agency_name"),
-                F.col("counter_id"),
-                F.col("weekday"),
-                F.col("date"),
-            ).show(2000)
-        )
+        # (
+        #     daily_with_percent_change.sort(
+        #         F.col("agency_name"),
+        #         F.col("counter_id"),
+        #         F.col("weekday"),
+        #         F.col("date"),
+        #     ).show(2000)
+        # )
 
-        # write
-        daily_with_percent_change.write.parquet(
-            f'{self.config_dict["output_path"]}' f"agencies_daily_visitor_count",
-            mode="overwrite",
-        )
+        # daily_with_percent_change.show()
+
+        output_path = f'{self.config_dict["output_path"]}/agencies_daily_visitor_count'
+
+        if os.path.exists(output_path):
+            existing_data = spark.read.schema(  # pylint: disable=E0606
+                self.config_dict["parquet_schema"]
+            ).parquet(output_path)
+            existing_data.show()
+            # df = spark.read.parquet("file:///path/to/your/file.parquet")
+            # existing_data.printSchema()
+
+            # Assuming there is a unique identifier column, e.g., 'id'
+            # You can adjust this logic based on the key or the structure of your data
+            filtered_data = daily_with_percent_change.join(
+                existing_data,
+                on=[
+                    "date",
+                    "agency_name",
+                    "counter_id",
+                ],  # Adjust this list to match the key column(s) for uniqueness
+                how="left_anti",
+            )
+            # Combine the existing data with the new data (filtered_data) to ensure no duplicates
+            final_data = existing_data.union(filtered_data).distinct()
+            final_data = final_data.orderBy("agency_name", "counter_id", "date")
+            final_data.show()
+            # Write the filtered data in append mode
+            (
+                final_data.write
+                # .partitionBy("agency_name", "counter_id", "date")
+                .mode("overwrite").parquet(output_path)
+            )
+
+        else:
+            # Write a new file if it doesn't exist
+            (
+                daily_with_percent_change.write.mode(
+                    "overwrite"
+                ).parquet(  # Use "overwrite" to write a new file
+                    output_path
+                )
+                # .schema(self.config_dict["parquet_schema"])
+            )
 
 
 # ---------------------------------------------------------------------------------
@@ -284,6 +327,11 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 
 # Example Usage
 if __name__ == "__main__":
+    print("Running data_pipeline")
+    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
+    TABLE = "agencies"
+
     # Initialize SparkSession
     spark = SparkSession.builder.appName(
         "Agencies_Visitor_Count_Pipeline"
@@ -294,22 +342,37 @@ if __name__ == "__main__":
         [
             StructField("date_time", StringType(), False),
             StructField("agency_name", StringType(), False),
-            StructField("counter_id", IntegerType(), True),
+            StructField("counter_id", IntegerType(), False),
             StructField("visitor_count", IntegerType(), False),
             StructField("unit", StringType(), True),
         ]
     )
 
-    agency_names = load_agency_name_list_from_db(
-        "api/data_app/db/agencies.duckdb", "agencies"
+    # Define schema for the parquet columns
+    parquet_schema = StructType(
+        [
+            StructField("date", DateType(), True),
+            StructField("agency_name", StringType(), True),
+            StructField("counter_id", IntegerType(), True),
+            StructField("unit", StringType(), True),
+            StructField("daily_visitor_count", LongType(), True),
+            StructField("weekday", IntegerType(), True),
+            StructField("avg_visits_4_weekday", DoubleType(), True),
+            StructField("prev_avg_4_visits", DoubleType(), True),
+            StructField("pct_chge", DoubleType(), True),
+        ]
     )
+
+    agency_names = load_agency_name_list_from_db(DB_PATH, TABLE)
     # Broadcast word_list to make it accessible in all nodes
     word_list_broadcast = spark.sparkContext.broadcast(agency_names)
 
     config = {
         "schema": schema,
-        "file_path": "data/raw/2024/*.csv",
-        "output_path": "data/filtered/2024_",
+        "parquet_schema": parquet_schema,
+        # "file_path": "data/raw/2024/*.csv",
+        "file_path": PROJECT_PATH + "data/raw/cli/*.csv",
+        "output_path": PROJECT_PATH + "data/filtered",
         "agency_names": agency_names,
     }
 

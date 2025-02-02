@@ -61,7 +61,8 @@ def load_agencies_from_db_to_dataframe(path: str, table: str) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    PATH_TO_DB = "db/agencies.duckdb"
+    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PATH_TO_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE_NAME = "agencies"
 
     print(create_agencies(PATH_TO_DB, TABLE_NAME))
