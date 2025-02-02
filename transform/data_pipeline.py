@@ -7,15 +7,8 @@ from fuzzywuzzy import process
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
 from pyspark.sql.functions import udf
-from pyspark.sql.types import (
-    IntegerType,
-    StringType,
-    StructField,
-    StructType,
-    DateType,
-    LongType,
-    DoubleType,
-)
+from pyspark.sql.types import (DateType, DoubleType, IntegerType, LongType,
+                               StringType, StructField, StructType)
 
 
 def get_closest_match(word):
@@ -270,13 +263,12 @@ class DataPipeline:
         output_path = f'{self.config_dict["output_path"]}/agencies_daily_visitor_count'
 
         if os.path.exists(output_path):
-            existing_data = spark.read.schema(
+            existing_data = spark.read.schema(  # pylint: disable=E0606
                 self.config_dict["parquet_schema"]
             ).parquet(output_path)
             existing_data.show()
             # df = spark.read.parquet("file:///path/to/your/file.parquet")
             # existing_data.printSchema()
-            # print('HEEEEEEEEEEERRRRRRRRRREEEEEEe')
 
             # Assuming there is a unique identifier column, e.g., 'id'
             # You can adjust this logic based on the key or the structure of your data

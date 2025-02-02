@@ -40,7 +40,7 @@ class Api:  # pylint: disable=R0903
         self.get_route = get_route
 
     def request_api(
-        self, date_str: str, name_of_agency: str, id_of_counter: int = -1
+        self, date_string: str, name_of_agency: str, id_of_counter: int = -1
     ) -> dict | str:
         """
         Sends a GET request to the api and print the response
@@ -49,7 +49,7 @@ class Api:  # pylint: disable=R0903
         try:
             url = (
                 f"{self.base_url}{self.get_route}?"
-                f"date_time={date_str}&"
+                f"date_time={date_string}&"
                 f"agency_name={name_of_agency}&"
                 f"counter_id={id_of_counter}"
             )
@@ -69,21 +69,23 @@ class Api:  # pylint: disable=R0903
 # ----------------------------------------------------------------------------------------------
 #                       SINGLE DATE REQUEST FROM CLI PARAMETERS
 # ----------------------------------------------------------------------------------------------
-def get_this_date_agency_counter_count(target_api, date_str, agency_nam, counter_id):
+def get_this_date_agency_counter_count(
+    target_api, date_string, agency_nam, counter_id
+) -> pd.DataFrame | None:
     """
     perform a single request using CLI parameters
     writes the line obtained in 'data.csv' to disk
     TESTING purpose
     """
-    # request api and obtain JSON response
-    json_response = target_api.request_api(date_str, agency_nam, counter_id)
-    # Load JSON data into a pandas DataFrame
     try:
+        # request api and obtain JSON response
+        json_response = target_api.request_api(date_string, agency_nam, counter_id)
+        # Load JSON data into a pandas DataFrame
         return pd.DataFrame([json_response])
-
     except ValueError as e:
         print(e)
-        print(json_response)
+        # print(json_response)
+        return None
 
 
 def validate_cli_parameters(sys_argv, m=2, n=4):
@@ -98,7 +100,7 @@ def get_cli_parameters(sys_argv):
     """return the 3 parameters : date, agency_name, counter_id
     from CLI as a tuple"""
 
-    date_str = sys_argv[1]
+    date_string = sys_argv[1]
 
     # get the facultative argument agency_name
     if len(sys_argv) >= 3:
@@ -111,28 +113,28 @@ def get_cli_parameters(sys_argv):
         counter_id_int = int(sys_argv[3])
     else:
         counter_id_int = -1
-    return date_str, agency_name_str, counter_id_int
+    return date_string, agency_name_str, counter_id_int
 
 
 # ----------------------------------------------------------------------------------------------
 
 
-def validate_date_format(date_str: str):
+def validate_date_format(date_string: str):
     """
-    Validate that date_str corresponds to format 'YYYY-MM-DD HH:MM'.
+    Validate that date_string corresponds to format 'YYYY-MM-DD HH:MM'.
     """
-    print(f"Received date string: '{date_str}'")
+    print(f"Received date string: '{date_string}'")
 
     pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
-    if not re.match(pattern, date_str):
+    if not re.match(pattern, date_string):
         raise ValueError(
-            f"Invalid date format: {date_str}. Expected format: YYYY-mm-dd HH:MM"
+            f"Invalid date format: {date_string}. Expected format: YYYY-mm-dd HH:MM"
         )
     # check that the date is valid
     try:
-        datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+        datetime.strptime(date_string, "%Y-%m-%d %H:%M")
     except ValueError as e:
-        raise ValueError(f"Invalid date content: {date_str}. {e}") from e
+        raise ValueError(f"Invalid date content: {date_string}. {e}") from e
 
 
 def load_agency_name_counter_num_from_db(path, table_name):
@@ -234,17 +236,17 @@ def replace_random_letter(s):
 #
 #     # find all agency_names and their number of counter
 #     for date in dates:
-#         # put date_str to expected format in the API
-#         date_str = date.strftime("%Y-%m-%d %H:%M")
+#         # put date_string to expected format in the API
+#         date_string = date.strftime("%Y-%m-%d %H:%M")
 #
 #         for agency_name, counter_num in (agencies_df[["agency_name", "counter_number"]]
 #                                             .values.tolist()):
 #             for counter_id in range(counter_num):
-#                 return get_single_date_response(event_df, agency_name, counter_id, date_str)
+#                 return get_single_date_response(event_df, agency_name, counter_id, date_string)
 
 
-# def get_single_date_response(render_api,count_df, agency_nam, counter_id, date_str):
-#     json_response, new_df = get_api_response(render_api,agency_nam, counter_id, date_str)
+# def get_single_date_response(render_api,count_df, agency_nam, counter_id, date_string):
+#     json_response, new_df = get_api_response(render_api,agency_nam, counter_id, date_string)
 #     try:
 #         count_df = pd.concat([count_df, new_df], ignore_index=True)
 #         return event_df
@@ -267,14 +269,14 @@ def initiate_event_df():
 
 
 def get_api_response(
-    render_api, agency_name: str, counter_id: int, date_str: str
+    api, agency_nam: str, counter_id: int, date_string: str
 ) -> (dict | str, dict):
     """request api and get JSON response"""
-    json_response = render_api.request_api(date_str, agency_name, counter_id)
-    new_row = add_random_error_to_row(json_response)
-    new_row = pd.DataFrame([new_row])
+    json_response = api.request_api(date_string, agency_nam, counter_id)
+    new_line = add_random_error_to_row(json_response)
+    new_line = pd.DataFrame([new_line])
     # Load cumulatively JSON data into a pandas DataFrame
-    return json_response, new_row
+    return json_response, new_line
 
 
 # def get_date_range(year, month)->(pd.date_range(), str):
@@ -294,14 +296,13 @@ def get_api_response(
 #     return date_range, date_range_string
 
 
-def clean_date(date_str: str):
-    return date_str.replace(":", "-")
+def clean_date(date_string: str):
+    """replace the semicolon by an underscore for the date_time in the filename"""
+    return date_string.replace(":", "-")
 
 
 if __name__ == "__main__":
 
-    # validate_date_format("2025-02-02 00:14")  # Should pass
-    # validate_date_format('2025-02-02 00:10')
     # local db settings
     PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
     PATH_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
@@ -321,8 +322,8 @@ if __name__ == "__main__":
     if len(sys.argv) >= 2:
         # 1 date_time : requests all agencies sensors
         validate_cli_parameters(sys.argv)
-        date_string, agency_name, id_counter = get_cli_parameters(sys.argv)
-        validate_date_format(date_string)
+        date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
+        validate_date_format(date_str)
 
         if len(sys.argv) == 2:
             # loop over all agencies and sensors
@@ -338,7 +339,7 @@ if __name__ == "__main__":
             ].values.tolist():
                 for id_counter in range(counter_num):
                     new_row = get_this_date_agency_counter_count(
-                        render_api, date_string, agency_name, id_counter
+                        render_api, date_str, agency_name, id_counter
                     )
                     try:
                         event_df = pd.concat([event_df, new_row], ignore_index=True)
@@ -346,7 +347,7 @@ if __name__ == "__main__":
                         print(v)
 
             # Save event_df to CSV
-            cleaned_date_string = clean_date(date_string)
+            cleaned_date_string = clean_date(date_str)
             event_df.to_csv(
                 PROJECT_PATH
                 + "data/raw/cli/"

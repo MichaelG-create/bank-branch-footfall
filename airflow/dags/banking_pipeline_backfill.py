@@ -2,26 +2,28 @@
 
 # in airflow directory :
 # export AIRFLOW_HOME=$(pwd)
-from airflow.decorators import dag, task
-from airflow.operators.dummy_operator import DummyOperator
-import pendulum
 import datetime
 import os
 
+import pendulum
 
-@dag(
-    dag_id="banking_pipeline_extract_backfill",
+from airflow.decorators import task
+from airflow.models.dag import DAG
+
+with DAG(
+    dag_id="banking_pipeline_backfill",
     description="hourly extract data from an API, then transform it to a parquet file",
     start_date=pendulum.datetime(2024, 1, 1, 0, 0, tz="UTC"),
-    end_date=pendulum.datetime(2024, 12, 31, 23, 0, tz="UTC"),  # Stop date
+    end_date=pendulum.datetime(2025, 1, 1, 0, 0, tz="UTC"),  # Stop date
     schedule="0 * * * *",  # every hour at minute 0
     catchup=True,
     dagrun_timeout=datetime.timedelta(minutes=60),
-)
-def banking_pipeline_extract_backfill():
+) as dag:
 
     @task
     def run_first_extract(**kwargs):
+        """run extract task via a query to the local or distant API
+        and save a CSV for every hour for all agencies"""
         # Get the theoretical execution date from the context
         execution_date = kwargs["execution_date"]
         theoretical_time = execution_date.strftime("%Y-%m-%d %H:%M")
@@ -34,12 +36,21 @@ def banking_pipeline_extract_backfill():
         )
         os.system(bash_command)
 
-    # Dummy task to set up the flow order
-    start = DummyOperator(task_id="start")
+    @task
+    def run_second_transform(**kwargs):
+        """run transform task collecting CSVs"""
+        execution_date = kwargs["execution_date"]
+        if (
+            execution_date.day == 1 and execution_date.hour == 0
+        ):  # Check if it's the first of the month so run it
+            os.system(
+                "python3 /home/michael/ProjetPerso/Banking_Agency_Traffic/transform/"
+                "data_pipeline.py"
+            )
 
     # Setting up dependencies
-    start >> run_first_extract()
+    run_first_extract() >> run_second_transform()  # pylint: disable= W0106
 
 
-# Instantiate the DAG
-dag_instance = banking_pipeline_extract_backfill()
+if __name__ == "__main__":
+    dag.test()
