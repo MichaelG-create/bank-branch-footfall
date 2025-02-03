@@ -3,7 +3,6 @@
 temp.py
 *DEBUG*
 *.duckdb
-/airflow
 airflow*.*
 webserver_config.py
 logs
