@@ -10,11 +10,14 @@ CLI usage :
 python3 query_api.py
 """
 
+import calendar
 # import calendar
 import re
 import string
 import sys
 from datetime import datetime
+
+import logging
 
 import duckdb
 import numpy as np
@@ -23,6 +26,11 @@ import requests
 
 from api.data_app.random_seed import RandomSeed
 
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Set log level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+    format="%(asctime)s - %(levelname)s - %(message)s",  # Log format
+)
 # ----------------------------------------------------------------------------------------------
 #                       API class
 # ----------------------------------------------------------------------------------------------
@@ -30,7 +38,7 @@ from api.data_app.random_seed import RandomSeed
 
 class Api:  # pylint: disable=R0903
     """
-    api class used to request the api directly on render.com
+    api class used to request the api directly on render.com or localy
     methods : request_api
     (sends GET request and get JSON response back)
     """
@@ -53,7 +61,7 @@ class Api:  # pylint: disable=R0903
                 f"agency_name={name_of_agency}&"
                 f"counter_id={id_of_counter}"
             )
-            # print(f"requesting {url}")
+            # logging.info(f"requesting {url}")
             response = requests.get(url, timeout=5)
 
             # check if the request was successful
@@ -62,7 +70,7 @@ class Api:  # pylint: disable=R0903
 
             return response.text
         except requests.exceptions.RequestException as e:
-            print(f"An error occurred: {e}")
+            logging.error(f"An error occurred: {e}")
             return str(e)
 
 
@@ -70,20 +78,19 @@ class Api:  # pylint: disable=R0903
 #                       SINGLE DATE REQUEST FROM CLI PARAMETERS
 # ----------------------------------------------------------------------------------------------
 def get_this_date_agency_counter_count(
-    target_api, date_string, agency_nam, counter_id
+    target_api, date_tim, agency_nam, counter_id
 ) -> pd.DataFrame | None:
     """
-    perform a single request using CLI parameters
-    writes the line obtained in 'data.csv' to disk
-    TESTING purpose
+    perform a single request to the API (one date_time, one agency, one counter)
     """
     try:
+        date_str_web = date_tim.strftime("%Y-%m-%d %H:%M")
         # request api and obtain JSON response
-        json_response = target_api.request_api(date_string, agency_nam, counter_id)
+        json_response = target_api.request_api(date_str_web, agency_nam, counter_id)
         # Load JSON data into a pandas DataFrame
         return pd.DataFrame([json_response])
     except ValueError as e:
-        print(e)
+        logging.error(e)
         # print(json_response)
         return None
 
@@ -92,7 +99,7 @@ def validate_cli_parameters(sys_argv, m=2, n=4):
     """Check parameters validity for CLI"""
     # check passed arguments
     if not m <= len(sys_argv) <= n:
-        print("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
+        logging.warning("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
         sys.exit(1)  # stops with an error code
 
 
@@ -119,22 +126,62 @@ def get_cli_parameters(sys_argv):
 # ----------------------------------------------------------------------------------------------
 
 
-def validate_date_format(date_string: str):
+def get_date_format(date_string: str) -> (datetime, str):
     """
-    Validate that date_string corresponds to format 'YYYY-MM-DD HH:MM'.
+    Detect if date_string corresponds to format :
+    -'YYYY-MM-DD HH:MM'.
+    -'YYYY-MM-DD'.
+    -'YYYY-MM'.
+    -raise error else
+    :returns:date_clean, label ('hour', 'day', 'month')
     """
-    print(f"Received date string: '{date_string}'")
+    logging.info(f"Received date string: '{date_string}'")
 
-    pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
-    if not re.match(pattern, date_string):
+    date_time_pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
+    date_pattern = r"^\d{4}-\d{2}-\d{2}$"
+    month_pattern = r"^\d{4}-\d{2}$"
+    year_pattern = r"^\d{4}$"
+
+    if re.match(date_time_pattern, date_string):
+        # check that the date is valid
+        try:
+            date_clean = datetime.strptime(date_string, "%Y-%m-%d %H:%M")
+            return date_clean, "hour"
+        except ValueError as e:
+            raise ValueError(f"Invalid date content: {date_string}. {e}") from e
+
+    elif re.match(date_pattern, date_string):
+        # check that the date is valid
+        try:
+            date_clean = datetime.strptime(date_string, "%Y-%m-%d").date()
+            return date_clean, "day"
+
+        except ValueError as e:
+            raise ValueError(f"Invalid date content: {date_string}. {e}") from e
+
+    elif re.match(month_pattern, date_string):
+        # check that the date is valid
+        try:
+            date_clean = datetime.strptime(date_string, "%Y-%m")
+            return date_clean, "month"
+        except ValueError as e:
+            raise ValueError(f"Invalid date content: {date_string}. {e}") from e
+
+    elif re.match(year_pattern, date_string):
+        # check that the date is valid
+        try:
+            date_clean = datetime.strptime(date_string, "%Y")
+            return date_clean, "year"
+        except ValueError as e:
+            raise ValueError(f"Invalid date content: {date_string}. {e}") from e
+
+    else:
         raise ValueError(
-            f"Invalid date format: {date_string}. Expected format: YYYY-mm-dd HH:MM"
+            f"Invalid date format: {date_string}. Expected formats: /n"
+            f"YYYY-mm-dd HH:MM /n"
+            f"YYYY-mm-dd /n"
+            f"YYYY-mm"
         )
-    # check that the date is valid
-    try:
-        datetime.strptime(date_string, "%Y-%m-%d %H:%M")
-    except ValueError as e:
-        raise ValueError(f"Invalid date content: {date_string}. {e}") from e
 
 
 def load_agency_name_counter_num_from_db(path, table_name):
@@ -145,6 +192,7 @@ def load_agency_name_counter_num_from_db(path, table_name):
         f"""
         SELECT agency_name, counter_number 
         FROM {table_name}
+        ORDER BY agency_name, counter_number
     """
     ).fetchdf()
 
@@ -228,33 +276,6 @@ def replace_random_letter(s):
     return new_string
 
 
-# def get_df_for_all_agencies_in_date_range(
-#         agencies_df: pd.DataFrame, dates:pd.date_range()
-#         ) -> pd.DataFrame:
-#
-#     event_df = initiate_event_df()
-#
-#     # find all agency_names and their number of counter
-#     for date in dates:
-#         # put date_string to expected format in the API
-#         date_string = date.strftime("%Y-%m-%d %H:%M")
-#
-#         for agency_name, counter_num in (agencies_df[["agency_name", "counter_number"]]
-#                                             .values.tolist()):
-#             for counter_id in range(counter_num):
-#                 return get_single_date_response(event_df, agency_name, counter_id, date_string)
-
-
-# def get_single_date_response(render_api,count_df, agency_nam, counter_id, date_string):
-#     json_response, new_df = get_api_response(render_api,agency_nam, counter_id, date_string)
-#     try:
-#         count_df = pd.concat([count_df, new_df], ignore_index=True)
-#         return event_df
-#     except ValueError as v:
-#         print(v)
-#         print(json_response)
-
-
 def initiate_event_df():
     """if df does not exist, create it empty"""
     return pd.DataFrame(
@@ -279,21 +300,56 @@ def get_api_response(
     return json_response, new_line
 
 
-# def get_date_range(year, month)->(pd.date_range(), str):
-#     """
-#     :param month: get the date range within a month
-#     :param year: get the date range within a year
-#     :return:
-#     """
-#     last_day = calendar.monthrange(year, month)[1]
-#     start_day = f"{year}-{month:02}-01"
-#     and_day = f"{year}-{month:02}-{last_day}"
-#     date_range = pd.date_range(
-#         start=f"{start_day} 00:00", end=f"{and_day} 23:00", freq="h"
-#     )
-#     date_range_string = f"{start_day}-{and_day}"
-#     date_range_string = date_range_string.replace(" ", "_")
-#     return date_range, date_range_string
+def get_date_range(date_tim, date_kind) -> (pd.DatetimeIndex, str):
+    """
+    :param date_tim: get the date range within a month
+    :param date_kind: kind of date we have 'hour', 'day', 'month'
+    :return: date_period, date_range_string
+    """
+    logging.info(f"received date_time {date_tim}")
+    logging.info(f"received date_kind {date_kind}")
+    if date_kind == "hour":
+        date_period = pd.date_range(start=date_tim, periods=1, freq="h")
+        date_range_string = f"{date_tim}"
+        date_range_string = date_range_string.replace(" ", "_")
+
+    elif date_kind == "day":
+        date_period = pd.date_range(
+            start=f"{date_tim} 00:00", end=f"{date_tim} 23:00", freq="h"
+        )
+        date_range_string = f"{date_tim}"
+        date_range_string = date_range_string.replace(" ", "_")
+
+    elif date_kind == "month":
+        last_day = calendar.monthrange(date_tim.year, date_tim.month)[1]
+        start_day = f"{date_tim.year}-{date_tim.month:02}-01"
+        end_day = f"{date_tim.year}-{date_tim.month:02}-{last_day}"
+
+        date_period = pd.date_range(
+            start=f"{start_day} 00:00", end=f"{end_day} 23:00", freq="h"
+        )
+        # date_range_string = f"{start_day}-{end_day}" #another way to name the file
+        date_range_string = date_tim.strftime("%Y-%m")
+        date_range_string = date_range_string.replace(" ", "_")
+
+    elif date_kind == "year":
+        start_day = f"{date_tim.year}-01-01"
+        end_day = f"{date_tim.year}-12-31"
+
+        date_period = pd.date_range(
+            start=f"{start_day} 00:00", end=f"{end_day} 23:00", freq="h"
+        )
+        # date_range_string = f"{start_day}-{end_day}" #another way to name the file
+        date_range_string = date_tim.strftime("%Y")
+        # date_range_string = date_range_string.replace(" ", "_")
+
+    else:
+        raise ValueError(
+            f"Invalid date kind: {date_kind}. Expected 'hour', 'day' or 'month'"
+        )
+
+    return date_period, date_range_string
+
 
 
 def clean_date(date_string: str):
@@ -302,6 +358,10 @@ def clean_date(date_string: str):
 
 
 if __name__ == "__main__":
+
+    logging.info("Script started")
+    # logging.warning("This is a warning")
+    # logging.error("An error occurred")
 
     # local db settings
     PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
@@ -323,57 +383,43 @@ if __name__ == "__main__":
         # 1 date_time : requests all agencies sensors
         validate_cli_parameters(sys.argv)
         date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
-        validate_date_format(date_str)
+        date_str, date_type = get_date_format(date_str)  #'hour', 'day', 'month' or 'year'
 
-        if len(sys.argv) == 2:
+        date_range, date_range_str = get_date_range(date_str, date_type)
+
+        if agency_name is None:
             # loop over all agencies and sensors
             # use local database to load agency_name and corresponding counter_num
             agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+            agency_counter_num_list = agency_df[
+                ["agency_name", "counter_number"]
+            ].values.tolist()
 
-            # init event_df
             event_df = initiate_event_df()
 
             # loop over all agencies and sensors
-            for agency_name, counter_num in agency_df[
-                ["agency_name", "counter_number"]
-            ].values.tolist():
-                for id_counter in range(counter_num):
-                    new_row = get_this_date_agency_counter_count(
-                        render_api, date_str, agency_name, id_counter
-                    )
-                    try:
-                        event_df = pd.concat([event_df, new_row], ignore_index=True)
-                    except ValueError as v:
-                        print(v)
+            for date_i in date_range:
+                if date_i.hour == 0 : logging.info(f'treating date: {date_i.date()}')
+                for agency_name, counter_num in agency_counter_num_list:
+                    for id_counter in range(counter_num):
+                        new_row = get_this_date_agency_counter_count(
+                            render_api, date_i, agency_name, id_counter
+                        )
+                        try:
+                            event_df = pd.concat([event_df, new_row], ignore_index=True)
+                        except ValueError as v:
+                            logging.error(v)
 
             # Save event_df to CSV
-            cleaned_date_string = clean_date(date_str)
+            CLEANED_DATE_STRING = clean_date(date_range_str)
+            FILE_NAME = f"event_df_all_agencies_{CLEANED_DATE_STRING}.csv"
+            PATH_NAME = f"{PROJECT_PATH}data/raw/cli/"
+            logging.info(f"dataframe created -> saving {FILE_NAME} in {PATH_NAME}")
             event_df.to_csv(
-                PROJECT_PATH
-                + "data/raw/cli/"
-                + "event_df_all_agencies_"
-                + cleaned_date_string
-                + ".csv",
+                PATH_NAME+FILE_NAME,
                 index=False,
             )
-        else:
-            pass
+            logging.info(f"File successfully saved")
 
-    # else:
-    #     # prepare the time_slice of the data
-    #     YEAR = 2024
-    #
-    #     # use local database to load agency_name and corresponding counter_num
-    #     agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
-    #
-    #     for month_i in range(1, 12 + 1):
-    #         date_range, date_range_str = get_date_range(YEAR, month_i)
-    #
-    #         # get the df for all agencies within the date_range
-    #         event_df = get_df_for_all_agencies_in_date_range(agency_df, date_range)
-    #
-    #         # Save DataFrame to CSV
-    #         event_df.to_csv(
-    #             "data/raw/back_fill/events_all_agencies_counters_" + date_range_str + ".csv",
-    #             index=False,
-    #         )
+        else: #we have a specific agency_name and maybe a specific counter name
+            pass  # reconstruct this later
