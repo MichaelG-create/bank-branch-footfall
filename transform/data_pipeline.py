@@ -1,5 +1,8 @@
-""" Data pipeline module to transform raw CSVs with possible errors to clean parquet """
+# pylint: disable=duplicate-code
+""" Data pipeline module to transform raw CSVs
+ with possible errors to clean parquet """
 
+import logging
 import os
 
 import duckdb
@@ -7,8 +10,15 @@ from fuzzywuzzy import process
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
 from pyspark.sql.functions import udf
-from pyspark.sql.types import (DateType, DoubleType, IntegerType, LongType,
-                               StringType, StructField, StructType)
+from pyspark.sql.types import (
+    DateType,
+    DoubleType,
+    IntegerType,
+    LongType,
+    StringType,
+    StructField,
+    StructType,
+)
 
 
 def get_closest_match(word):
@@ -327,7 +337,7 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 
 # Example Usage
 if __name__ == "__main__":
-    print("Running data_pipeline")
+    logging.info("Running data_pipeline")
     PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
     DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"

@@ -2,6 +2,7 @@
 agencies app maker
 """
 
+import logging
 import os
 
 import duckdb
@@ -13,7 +14,7 @@ from api.data_app.db.init_agencies_db import create_agencies_db
 
 def create_agencies(db_path: str, table_name: str) -> dict[str, Agency]:
     """
-    Create the list of all agencies in our api
+    Create the list of all agencies objects in our api
     from the agencies database
     :return: dict('agency_name' : Agency())
     """
@@ -65,4 +66,4 @@ if __name__ == "__main__":
     PATH_TO_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE_NAME = "agencies"
 
-    print(create_agencies(PATH_TO_DB, TABLE_NAME))
+    logging.info(create_agencies(PATH_TO_DB, TABLE_NAME))

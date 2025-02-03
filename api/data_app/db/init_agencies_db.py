@@ -2,6 +2,7 @@
 module to initiate the database agencies
 """
 
+import logging
 from enum import Enum
 
 import duckdb
@@ -112,7 +113,7 @@ def create_agencies_db(path, table_name):
     conn = duckdb.connect(path)
 
     # Create the table if it doesn't exist
-    print(f"I will create {table_name} here : {path}")
+    logging.info("I will create %s here: %s", table_name, path)
     conn.execute(
         f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
@@ -196,4 +197,4 @@ if __name__ == "__main__":
     DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     DB_TABLE = "agencies"
     create_agencies_db(DB_PATH, DB_TABLE)
-    print(read_agency_db(DB_PATH, DB_TABLE))
+    logging.info(read_agency_db(DB_PATH, DB_TABLE))
