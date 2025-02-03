@@ -3,6 +3,7 @@
 import calendar
 from datetime import date, datetime, timedelta
 
+import glob
 import duckdb
 import pandas as pd
 import plotly.express as px
@@ -201,11 +202,15 @@ def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFra
 
 if __name__ == "__main__":
 
+    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
     # parquet file location (directly read in duckdb (memory costless))
-    PARQUET_FILE = (
-        "'data/filtered/2024_agencies_daily_visitor_count/"
-        "part-00000-0e27bd92-4b26-465a-9cf9-180b61966469-c000.snappy.parquet'"
-    )
+    FOLDER_PATH = PROJECT_PATH + "data/filtered/agencies_daily_visitor_count/"
+    parquet_files = glob.glob(FOLDER_PATH + "*.parquet")
+
+    # Get file names (just the names without full paths)
+    parquet_file_names = [file.split("/")[-1] for file in parquet_files]
+
+    PARQUET_FILE = f"'{parquet_files[0]}'"
 
     agency_sensor_list = get_sensor_list(PARQUET_FILE)
 
