@@ -11,13 +11,13 @@ python3 query_api.py
 """
 
 import calendar
+import logging
+
 # import calendar
 import re
 import string
 import sys
 from datetime import datetime
-
-import logging
 
 import duckdb
 import numpy as np
@@ -70,7 +70,7 @@ class Api:  # pylint: disable=R0903
 
             return response.text
         except requests.exceptions.RequestException as e:
-            logging.error(f"An error occurred: {e}")
+            logging.error("An error occurred: %s", e)
             return str(e)
 
 
@@ -99,7 +99,9 @@ def validate_cli_parameters(sys_argv, m=2, n=4):
     """Check parameters validity for CLI"""
     # check passed arguments
     if not m <= len(sys_argv) <= n:
-        logging.warning("Usage: python3 query_api.py <date_string> <agency_name> <counter_id>")
+        logging.warning(
+            "Usage: python3 query_api.py <date_string> <agency_name> <counter_id>"
+        )
         sys.exit(1)  # stops with an error code
 
 
@@ -135,7 +137,7 @@ def get_date_format(date_string: str) -> (datetime, str):
     -raise error else
     :returns:date_clean, label ('hour', 'day', 'month')
     """
-    logging.info(f"Received date string: '{date_string}'")
+    logging.info("Received date string: '%s'", date_string)
 
     date_time_pattern = r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}$"
     date_pattern = r"^\d{4}-\d{2}-\d{2}$"
@@ -306,8 +308,9 @@ def get_date_range(date_tim, date_kind) -> (pd.DatetimeIndex, str):
     :param date_kind: kind of date we have 'hour', 'day', 'month'
     :return: date_period, date_range_string
     """
-    logging.info(f"received date_time {date_tim}")
-    logging.info(f"received date_kind {date_kind}")
+    logging.info("Received date_time %s", date_tim)
+    logging.info("Received date_kind %s", date_kind)
+
     if date_kind == "hour":
         date_period = pd.date_range(start=date_tim, periods=1, freq="h")
         date_range_string = f"{date_tim}"
@@ -351,7 +354,6 @@ def get_date_range(date_tim, date_kind) -> (pd.DatetimeIndex, str):
     return date_period, date_range_string
 
 
-
 def clean_date(date_string: str):
     """replace the semicolon by an underscore for the date_time in the filename"""
     return date_string.replace(":", "-")
@@ -383,7 +385,9 @@ if __name__ == "__main__":
         # 1 date_time : requests all agencies sensors
         validate_cli_parameters(sys.argv)
         date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
-        date_str, date_type = get_date_format(date_str)  #'hour', 'day', 'month' or 'year'
+        date_str, date_type = get_date_format(
+            date_str
+        )  #'hour', 'day', 'month' or 'year'
 
         date_range, date_range_str = get_date_range(date_str, date_type)
 
@@ -399,7 +403,8 @@ if __name__ == "__main__":
 
             # loop over all agencies and sensors
             for date_i in date_range:
-                if date_i.hour == 0 : logging.info(f'treating date: {date_i.date()}')
+                if date_i.hour == 0:
+                    logging.info("Treating date: %s", date_i.date())
                 for agency_name, counter_num in agency_counter_num_list:
                     for id_counter in range(counter_num):
                         new_row = get_this_date_agency_counter_count(
@@ -414,12 +419,12 @@ if __name__ == "__main__":
             CLEANED_DATE_STRING = clean_date(date_range_str)
             FILE_NAME = f"event_df_all_agencies_{CLEANED_DATE_STRING}.csv"
             PATH_NAME = f"{PROJECT_PATH}data/raw/cli/"
-            logging.info(f"dataframe created -> saving {FILE_NAME} in {PATH_NAME}")
+            logging.info("DataFrame created -> saving %s in %s", FILE_NAME, PATH_NAME)
             event_df.to_csv(
-                PATH_NAME+FILE_NAME,
+                PATH_NAME + FILE_NAME,
                 index=False,
             )
-            logging.info(f"File successfully saved")
+            logging.info("File successfully saved")
 
-        else: #we have a specific agency_name and maybe a specific counter name
+        else:  # we have a specific agency_name and maybe a specific counter name
             pass  # reconstruct this later

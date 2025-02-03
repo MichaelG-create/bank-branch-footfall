@@ -2,15 +2,14 @@
 agencies app maker
 """
 
-import os
 import logging
+import os
 
 import duckdb
 import pandas as pd
 
 from api.data_app.agency import Agency
 from api.data_app.db.init_agencies_db import create_agencies_db
-
 
 
 def create_agencies(db_path: str, table_name: str) -> dict[str, Agency]:
