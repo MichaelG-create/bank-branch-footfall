@@ -9,3 +9,5 @@ webserver_config.py
 logs
 Dockerfile
 **/__pycache__/
+*password*
+CODE_FOR_PIPREQS
