@@ -5,7 +5,7 @@ temp.py
 *.duckdb
 airflow*.*
 webserver_config.py
-logs
+logs*
 Dockerfile
 **/__pycache__/
 *password*
