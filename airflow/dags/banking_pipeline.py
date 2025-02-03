@@ -1,8 +1,8 @@
-""" DAG script : 2 consecutive BashOperators :
- - extracts data at current date
- - transform data avery first day of the month
- (real_time)
- """
+"""DAG script : 2 consecutive BashOperators :
+- extracts data at current date
+- transform data avery first day of the month
+(real_time)
+"""
 
 # in airflow directory :
 # export AIRFLOW_HOME=$(pwd)

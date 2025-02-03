@@ -1,4 +1,4 @@
-""" Streamlit APP displaying sensors traffic temporal series """
+"""Streamlit APP displaying sensors traffic temporal series"""
 
 # pylint: disable=C0301
 # ┌────────────┬─────────────────┬────────────┬──────────┬─────────────────────┬─────────┬──────────────────────┬───────────────────┬────────────┐
