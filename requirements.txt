@@ -7,6 +7,5 @@ pandas==2.2.3
 pendulum==3.0.0
 plotly==6.0.0
 pyspark==3.5.4
-pyspark_stubs==3.0.0.post3
 Requests==2.32.3
 streamlit==1.41.1
