@@ -1,5 +1,12 @@
-/.venv/
+/.venv
 .idea
 temp.py
 *DEBUG*
 *.duckdb
+airflow*.*
+webserver_config.py
+logs*
+Dockerfile
+**/__pycache__/
+*password*
+CODE_FOR_PIPREQS

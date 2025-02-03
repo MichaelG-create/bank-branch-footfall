@@ -1,7 +1,8 @@
 # Banking Agency Traffic Analyser
+A project with :
 - An API generating traffic count in bank agencies on an hourly basis
-- An ETL pipeline using pyspark which 
-  - Extracts the data from the API and saves to CSV raw files (python)
-  - Transforms the data to perform analytical queries (pyspark) 
-  - Loads the data in parquet files (ideal for compression, performance and compatibility)
-- A streamlit dashboard to present the analytical produced data
+- An ETL pipeline which 
+  - Extracts the data from the REST API (-> to raw CSVs))
+  - Transform the data to perform analytical queries 
+  - Load the data (-> to a parquet file)
+- A Streamlit Analytical Dashboard to investigate data and metrics

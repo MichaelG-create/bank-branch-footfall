@@ -1,6 +1,6 @@
 # pylint: disable=duplicate-code
-""" Data pipeline module to transform raw CSVs
- with possible errors to clean parquet """
+"""Data pipeline module to transform raw CSVs
+with possible errors to clean parquet"""
 
 import logging
 import os
