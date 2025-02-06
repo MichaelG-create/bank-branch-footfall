@@ -1,9 +1,25 @@
-FROM apache/spark:latest
+# Utilisation de l'image Python 3.12 slim
+FROM python:3.12-slim
+
+# Définition du répertoire de travail
 WORKDIR /app/etl
 
-COPY etl/requirements-etl.txt .
-RUN pip install --no-cache-dir -r requirements-etl.txt
+# Installation de Spark et PySpark
+RUN apt-get update && apt-get install -y wget openjdk-8-jdk \
+    && wget https://archive.apache.org/dist/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz \
+    && tar -xvzf spark-3.5.4-bin-hadoop3.tgz \
+    && mv spark-3.5.4-bin-hadoop3 /opt/spark
 
+# Définition des variables d'environnement nécessaires pour Spark
+ENV SPARK_HOME=/opt/spark
+ENV PATH=$SPARK_HOME/bin:$PATH
+
+# Copie et installation des dépendances Python
+COPY etl/requirements-etl_transform_load.txt .
+RUN pip install --no-cache-dir -r etl_transform_load.txt
+
+# Copie du script de transformation
 COPY etl/transform_load.py .
 
+# Commande pour soumettre le job Spark
 CMD ["spark-submit", "transform_load.py"]

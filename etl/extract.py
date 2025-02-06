@@ -12,10 +12,12 @@ python3 extract.py
 
 import calendar
 import logging
+import os
 
 # import calendar
 import re
 import string
+import subprocess
 import sys
 from datetime import datetime
 
@@ -100,7 +102,7 @@ def validate_cli_parameters(sys_argv, m=2, n=4):
     # check passed arguments
     if not m <= len(sys_argv) <= n:
         logging.warning(
-            "Usage: python3 extract.py <date_string> <agency_name> <counter_id>"
+            "Missing parameter. Usage: python3 extract.py <date_string> <agency_name> <counter_id>"
         )
         sys.exit(1)  # stops with an error code
 
@@ -189,7 +191,15 @@ def get_date_format(date_string: str) -> (datetime, str):
 def load_agency_name_counter_num_from_db(path, table_name):
     """Load from agencies table in db : (agency_name, counter_number)"""
     # load AgenciesDetails.duckdb database and look in AgenciesDetails table
+    # Check if the database exists
+    if not os.path.exists(path):
+        # Si elle n'existe pas, initialiser la base de données
+        # If connection fails, initialize the database by running the init script
+        logging.warning("Database not found at %s. Initializing database.",path)
+        subprocess.run(["python", "api/data_app/db/init_agencies_db.py"], check=True)
+
     conn = duckdb.connect(path)
+
     data_f = conn.execute(
         f"""
         SELECT agency_name, counter_number 
@@ -229,6 +239,7 @@ def add_random_error_to_row(row_df: dict) -> dict:
         row_df["unit"],
     )
 
+    # use another seed for error
     np.random.seed(seed)
     pct_error = 0.01
     return {
@@ -366,7 +377,7 @@ if __name__ == "__main__":
     # logging.error("An error occurred")
 
     # local db settings
-    PROJECT_PATH = "//"
+    PROJECT_PATH = ""
     PATH_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 
@@ -380,10 +391,11 @@ if __name__ == "__main__":
     # Create the api object
     render_api = Api(BASE_URL, GET_ROUTE)
 
+    # minimum : 1 date_time
+    validate_cli_parameters(sys.argv)
+
     # Request from CLI: 1 date_time, (+1 agency, (+1 counter_id)) (single row)
     if len(sys.argv) >= 2:
-        # 1 date_time : requests all agencies sensors
-        validate_cli_parameters(sys.argv)
         date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
         date_str, date_type = get_date_format(
             date_str
@@ -418,7 +430,7 @@ if __name__ == "__main__":
             # Save event_df to CSV
             CLEANED_DATE_STRING = clean_date(date_range_str)
             FILE_NAME = f"event_df_all_agencies_{CLEANED_DATE_STRING}.csv"
-            PATH_NAME = f"{PROJECT_PATH}data/raw/cli/"
+            PATH_NAME = f"{PROJECT_PATH}data/raw/"
             logging.info("DataFrame created -> saving %s in %s", FILE_NAME, PATH_NAME)
             event_df.to_csv(
                 PATH_NAME + FILE_NAME,
@@ -428,3 +440,7 @@ if __name__ == "__main__":
 
         else:  # we have a specific agency_name and maybe a specific counter name
             pass  # reconstruct this later
+
+    # Request from CLI less than 1 parameter: 1 date_time, (+1 agency, (+1 counter_id)) (single row)
+    else:  # we have a specific agency_name and maybe a specific counter name
+        pass

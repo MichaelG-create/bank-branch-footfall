@@ -270,7 +270,7 @@ class DataPipeline:
 
         # daily_with_percent_change.show()
 
-        output_path = f'{self.config_dict["output_path"]}/agencies_daily_visitor_count'
+        output_path = f'{self.config_dict["output_path"]}'
 
         if os.path.exists(output_path):
             existing_data = spark.read.schema(  # pylint: disable=E0606
@@ -338,7 +338,7 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 # Example Usage
 if __name__ == "__main__":
     logging.info("Running data_pipeline")
-    PROJECT_PATH = "//"
+    PROJECT_PATH = ""
     DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 

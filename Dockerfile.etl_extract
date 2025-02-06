@@ -1,8 +1,8 @@
 FROM python:3.12-slim
 WORKDIR /app/etl
 
-COPY etl/requirements-etl.txt .
-RUN pip install --no-cache-dir -r requirements-etl.txt
+COPY etl/requirements-etl_extract.txt .
+RUN pip install --no-cache-dir -r requirements-etl_extract.txt
 
 COPY etl/extract.py .
 
