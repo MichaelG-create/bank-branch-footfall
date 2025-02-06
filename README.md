@@ -54,8 +54,8 @@ uvicorn api.main:app --reload
 
 ### 🔄 **3. Exécuter le pipeline ETL**  
 ```bash
-python etl/extract_data.py  # Extraction des données API
-python etl/process_data.py  # Transformation et chargement
+python etl/extract.py  # Extraction des données API
+python etl/transfrom_load.py  # Transformation et chargement
 ```
 
 ### ⏳ **4. Lancer Airflow**  
@@ -63,7 +63,7 @@ Démarrer Airflow et activer les DAGs pour l’orchestration.
 
 ### 📊 **5. Lancer Streamlit**  
 ```bash
-streamlit run app.py
+streamlit run web_app/app.py
 ```
 📍 Interface de visualisation des données en temps réel.  
 

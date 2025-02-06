@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./api:/app/api
+      - ./data:/app/data
+    environment:
+      - UVICORN_PORT=8000
+    command: uvicorn api.app:app --host 0.0.0.0 --port 8000 --reload
+
+  etl_extract:
+    build:
+      context: .
+      dockerfile: Dockerfile.etl
+    depends_on:
+      - api
+    volumes:
+      - ./etl:/app/etl
+      - ./data:/app/data
+    command: python etl/extract.py
+
+  etl_transform:
+    build:
+      context: .
+      dockerfile: Dockerfile.etl
+    depends_on:
+      - etl_extract
+    volumes:
+      - ./etl:/app/etl
+      - ./data:/app/data
+    command: python etl/transform_load.py
+
+  streamlit:
+    build:
+      context: .
+      dockerfile: Dockerfile.streamlit
+    ports:
+      - "8501:8501"
+    depends_on:
+      - etl_transform
+    volumes:
+      - ./app:/app/web_app
+      - ./data:/app/data
+    command: streamlit run web_app/app.py --server.port=8501 --server.address=0.0.0.0
+
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile.airflow
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./airflow/dags:/opt/airflow/dags
+      - ./airflow/logs:/opt/airflow/logs
+      - ./airflow/config:/opt/airflow/config
+    environment:
+      - AIRFLOW_HOME=/opt/airflow
+    command: airflow standalone

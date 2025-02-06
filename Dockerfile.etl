@@ -1,0 +1,8 @@
+FROM apache/spark-py:3.3.1
+WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r api/requirements-api.txt
+RUN pip install --no-cache-dir -r etl/requirements-etl.txt
+COPY api /app/api
+COPY etl /app/etl
+COPY data /app/data
