@@ -1,5 +1,9 @@
-FROM apache/airflow:2.6.3
+FROM apache/airflow:2.7.2-python3.12
 WORKDIR /opt/airflow
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY airflow /opt/airflow
+
+COPY airflow/requirements-airflow.txt .
+RUN pip install --no-cache-dir -r requirements-airflow.txt
+
+COPY airflow/dags /opt/airflow/dags
+
+CMD ["airflow", "standalone"]

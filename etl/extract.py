@@ -24,7 +24,7 @@ import numpy as np
 import pandas as pd
 import requests
 
-from api.data_app.random_seed import RandomSeed
+from date_randomseed.random_seed import RandomSeed
 
 # Configure logging
 logging.basicConfig(

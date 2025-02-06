@@ -1,0 +1,9 @@
+FROM apache/spark:latest
+WORKDIR /app/etl
+
+COPY etl/requirements-etl.txt .
+RUN pip install --no-cache-dir -r requirements-etl.txt
+
+COPY etl/transform_load.py .
+
+CMD ["spark-submit", "transform_load.py"]
