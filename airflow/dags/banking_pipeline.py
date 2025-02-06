@@ -26,13 +26,13 @@ with DAG(
         task_id="run_first_EXTRACT",
         bash_command="export PYTHONPATH=$PYTHONPATH:"
         "/home/michael/ProjetPerso/bank-branch-footfall && "
-        "python3 /home/michael/ProjetPerso/bank-branch-footfall/etl/extract.py "
+        "python3 /home/michael/ProjetPerso/bank-branch-footfall/extract/extract.py "
         '"$(date +"%Y-%m-%d %H:%M")"',
     )
 
     run_this_second = BashOperator(
         task_id="run_this_second_TRANSFORM",
-        bash_command="python3 /home/michael/ProjetPerso/bank-branch-footfall/etl/"
+        bash_command="python3 /home/michael/ProjetPerso/bank-branch-footfall/transform_load/"
         "transform_load.py",
     )
 

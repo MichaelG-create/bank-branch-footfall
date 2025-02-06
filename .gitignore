@@ -9,4 +9,4 @@ logs*
 Dockerfile
 **/__pycache__/
 *password*
-CODE_FOR_PIPREQS
+read_parquet_file.py
