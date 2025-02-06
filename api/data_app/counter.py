@@ -1,3 +1,4 @@
+# pylint: disable=duplicate-code
 """
 sensor module
 Contains VisitorCounter a class to generate visitor count :
@@ -7,6 +8,7 @@ according to :
 - a std_dev_visitor_count (typically 15% of avg_visitor_count )
 """
 
+import logging
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -67,17 +69,17 @@ class VisitorCounter:
 
                     # works bad : only 20% traffic counted
                     if not hour_visits == -1 and self.is_badly_counting(random_seed):
-                        print(f"Normally counting : {hour_visits}")
+                        logging.info("Normally counting: %d", hour_visits)
                         hour_visits = int(0.2 * hour_visits)
-                        print(f"Bad counting : {hour_visits}")
+                        logging.info("Bad counting: %d", hour_visits)
 
             # defective counter : sends -1
             else:
                 hour_visits = -10
-                # print("dead counter")
+                # logging.info("dead counter")
 
         except ValueError as e:
-            print(e)
+            logging.error(e)
 
         return hour_visits
 
@@ -205,8 +207,14 @@ if __name__ == "__main__":
 
     for i in range(7000):
         visitors = counter.get_visit_count(date_time)
-        print(
-            f"This day {date_time.strftime("%A")} {date_time.day}/{date_time.month}/{date_time.year}, "
-            f"at {date_time.hour} got {visitors} visitors"
+        logging.info(
+            "This day %s %d/%d/%d, at %d got %d visitors",
+            date_time.strftime("%A"),
+            date_time.day,
+            date_time.month,
+            date_time.year,
+            date_time.hour,
+            visitors,
         )
+
         date_time += increment

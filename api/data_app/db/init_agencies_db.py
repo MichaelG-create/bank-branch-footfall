@@ -2,6 +2,7 @@
 module to initiate the database agencies
 """
 
+import logging
 from enum import Enum
 
 import duckdb
@@ -12,12 +13,16 @@ import duckdb
 #         and according average traffic TRAFFIC_DATA
 # ----------------------------------------------------------------
 class AgencySize(Enum):
+    """enum class for the agency size"""
+
     SMALL = "small"
     MEDIUM = "medium"
     BIG = "big"
 
 
 class LocationType(Enum):
+    """enum class for the location type"""
+
     COUNTRYSIDE = "countryside"
     MID_SIZED_CITY = "mid_sized_city"
     METROPOLIS = "metropolis"
@@ -39,6 +44,7 @@ BASE_TRAFFIC_DATA = {
 
 # function to get traffic_data
 def get_base_traffic(size: AgencySize, location: LocationType) -> int:
+    """function to get base traffic_data"""
     return BASE_TRAFFIC_DATA.get((size, location), "Data not available")
 
 
@@ -58,6 +64,7 @@ COUNTER_NUM_DATA = {
 
 # function to get traffic_data
 def get_num_counter(size: AgencySize, location: LocationType) -> int:
+    """function to get traffic_data"""
     return COUNTER_NUM_DATA.get((size, location), "Data not available")
 
 
@@ -65,6 +72,8 @@ def get_num_counter(size: AgencySize, location: LocationType) -> int:
 #         Define agency names 'City_#agency_in_the_city'
 # ----------------------------------------------------------------
 class AgencyName(Enum):
+    """enum class with all the agencies' names"""
+
     LYON_1 = "Lyon_1"
     LYON_2 = "Lyon_2"
     LYON_3 = "Lyon_3"
@@ -100,10 +109,11 @@ agency_details = {
 # create a database to store the agencies characteristics
 # ----------------------------------------------------------------
 def create_agencies_db(path, table_name):
+    """create a database to store the agencies characteristics"""
     conn = duckdb.connect(path)
 
     # Create the table if it doesn't exist
-    print(f"I will create {table_name} here : {path}")
+    logging.info("I will create %s here: %s", table_name, path)
     conn.execute(
         f"""
         CREATE TABLE IF NOT EXISTS {table_name} (
@@ -122,7 +132,8 @@ def create_agencies_db(path, table_name):
         num_counter = get_num_counter(agency_size, location_type)
         conn.execute(
             """
-    INSERT OR REPLACE INTO agencies (agency_name, agency_size, location_type, base_traffic, counter_number)
+    INSERT OR REPLACE INTO agencies 
+    (agency_name, agency_size, location_type, base_traffic, counter_number)
     VALUES (?, ?, ?, ?, ?)
     """,
             (
@@ -182,7 +193,8 @@ def read_agency_db(path, table_name):
 
 
 if __name__ == "__main__":
-    db_path = "agencies.duckdb"
-    db_table = "agencies"
-    create_agencies_db(db_path, db_table)
-    print(read_agency_db(db_path, db_table))
+    PROJECT_PATH = "//"
+    DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
+    DB_TABLE = "agencies"
+    create_agencies_db(DB_PATH, DB_TABLE)
+    logging.info(read_agency_db(DB_PATH, DB_TABLE))

@@ -5,6 +5,10 @@ and its method get_visitor_count
 at a certain date
 e.g. :
 /get_visitor_count?date_time=2025-05-29_09:05
+http://127.0.0.1:8000/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1
+TO LAUNCH it locally :
+in this project folder, with venv activated :
+uvicorn api.app:app --reload
 """
 
 from datetime import datetime
@@ -39,7 +43,7 @@ async def get_visitor_count(
     :return: visitor count at this moment
     """
     try:
-        date_time_obj = datetime.strptime(date_time, "%Y-%m-%d_%H:%M")
+        date_time_obj = datetime.strptime(date_time, "%Y-%m-%d %H:%M")
 
         agency = agencies_dict[agency_name]
         if counter_id > -1:

@@ -17,6 +17,8 @@ class RandomSeed:
     Class to generate a random seed to ensure reproducibility
     """
 
+    # pylint: disable=R0903
+
     def __init__(self, date_time: datetime = ""):
         self.base_seed = int(date_time.strftime("%Y%m%d"))
 
