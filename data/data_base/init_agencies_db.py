@@ -3,6 +3,8 @@ module to initiate the database agencies
 """
 
 import logging
+import os
+import subprocess
 from enum import Enum
 
 import duckdb
@@ -90,7 +92,7 @@ class AgencyName(Enum):
 # ----------------------------------------------------------------
 # Define a dictionary to associate each city with a size and location
 # ----------------------------------------------------------------
-agency_details = {
+AGENCY_DETAILS = {
     AgencyName.LYON_1: (AgencySize.BIG, LocationType.METROPOLIS),
     AgencyName.LYON_2: (AgencySize.MEDIUM, LocationType.METROPOLIS),
     AgencyName.LYON_3: (AgencySize.SMALL, LocationType.METROPOLIS),
@@ -127,7 +129,7 @@ def create_agencies_db(path, table_name):
     )
 
     # Insert data into the table
-    for agency_name, (agency_size, location_type) in agency_details.items():
+    for agency_name, (agency_size, location_type) in AGENCY_DETAILS.items():
         base_traffic = get_base_traffic(agency_size, location_type)
         num_counter = get_num_counter(agency_size, location_type)
         conn.execute(
@@ -195,7 +197,7 @@ def read_agency_db(path, table_name):
 if __name__ == "__main__":
     logging.info("launching agencies.duckdb creation")
     PROJECT_PATH = ""
-    DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
+    DB_PATH = PROJECT_PATH + "data/data_base/agencies.duckdb"
     DB_TABLE = "agencies"
-    create_agencies_db(DB_PATH, DB_TABLE)
+    create_agencies_db(DB_PATH, DB_TABLE, agency_details)   # agency_details defined up here
     logging.info(read_agency_db(DB_PATH, DB_TABLE))

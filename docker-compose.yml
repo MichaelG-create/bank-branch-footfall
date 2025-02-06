@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile.api
     volumes:
-      - ./date_randomseed:/date_randomseed
+      - ./api/data_app:/app/api/data_app  # for the agencies names and counters database
     ports:
       - "8000:8000"
     networks:
@@ -20,7 +20,7 @@ services:
       dockerfile: Dockerfile.etl_extract
     volumes:
       - ./data/raw:/app/data/raw
-      - ./date_randomseed:/date_randomseed
+      - ./api/data_app:/app/api/data_app  # for the agencies names and counters database
     networks:
       - banking_network
     depends_on:
@@ -33,6 +33,7 @@ services:
       dockerfile: Dockerfile.etl_transform_load
     volumes:
       - ./data/filtered:/app/data/filtered
+      - ./api/data_app:/app/api/data_app  # for the agencies names and counters database
     networks:
       - banking_network
     depends_on:

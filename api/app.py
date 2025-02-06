@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException
 
 from api.data_app import create_agencies
 
-DB_PATH = "api/data_app/db/agencies.duckdb"
+DB_PATH = "data/data_base/agencies.duckdb"
 TABLE_NAME = "agencies"
 
 # Obtain the agencies as {agency_name: agency_object, etc.)

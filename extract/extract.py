@@ -196,7 +196,7 @@ def load_agency_name_counter_num_from_db(path, table_name):
         # Si elle n'existe pas, initialiser la base de données
         # If connection fails, initialize the database by running the init script
         logging.warning("Database not found at %s. Initializing database.",path)
-        subprocess.run(["python", "api/data_app/db/init_agencies_db.py"], check=True)
+        subprocess.run(["python", "data/data_base/init_agencies_db.py"], check=True)
 
     conn = duckdb.connect(path)
 
@@ -378,7 +378,7 @@ if __name__ == "__main__":
 
     # local db settings
     PROJECT_PATH = ""
-    PATH_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
+    PATH_DB = PROJECT_PATH + "data/data_base/agencies.duckdb"
     TABLE = "agencies"
 
     # API settings

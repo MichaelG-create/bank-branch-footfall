@@ -2,10 +2,12 @@
 FROM python:3.12-slim
 
 # Définition du répertoire de travail
-WORKDIR /app/etl
+WORKDIR /app
 
 # Installation de Spark et PySpark
-RUN apt-get update && apt-get install -y wget openjdk-8-jdk \
+# Mise à jour et installation des dépendances nécessaires
+RUN apt-get update && apt-get install -y wget \
+    && apt-get install -y openjdk-17-jdk --no-install-recommends \
     && wget https://archive.apache.org/dist/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz \
     && tar -xvzf spark-3.5.4-bin-hadoop3.tgz \
     && mv spark-3.5.4-bin-hadoop3 /opt/spark
@@ -15,11 +17,11 @@ ENV SPARK_HOME=/opt/spark
 ENV PATH=$SPARK_HOME/bin:$PATH
 
 # Copie et installation des dépendances Python
-COPY etl/requirements-etl_transform_load.txt .
-RUN pip install --no-cache-dir -r etl_transform_load.txt
+COPY transform_load/requirements-etl_transform_load.txt .
+RUN pip install --no-cache-dir -r requirements-etl_transform_load.txt
 
 # Copie du script de transformation
-COPY etl/transform_load.py .
+COPY transform_load/transform_load.py /app/transform_load/transform_load/.py
 
 # Commande pour soumettre le job Spark
-CMD ["spark-submit", "transform_load.py"]
+CMD ["spark-submit", "transform_load/transform_load.py"]

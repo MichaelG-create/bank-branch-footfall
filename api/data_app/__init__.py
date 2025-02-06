@@ -9,7 +9,7 @@ import duckdb
 import pandas as pd
 
 from api.data_app.agency import Agency
-from api.data_app.db.init_agencies_db import create_agencies_db
+from data.data_base.init_agencies_db import create_agencies_db
 
 
 def create_agencies(db_path: str, table_name: str) -> dict[str, Agency]:
@@ -63,7 +63,7 @@ def load_agencies_from_db_to_dataframe(path: str, table: str) -> pd.DataFrame:
 
 if __name__ == "__main__":
     PROJECT_PATH = ""
-    PATH_TO_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
+    PATH_TO_DB = PROJECT_PATH + "data/data_base/agencies.duckdb"
     TABLE_NAME = "agencies"
 
     logging.info(create_agencies(PATH_TO_DB, TABLE_NAME))

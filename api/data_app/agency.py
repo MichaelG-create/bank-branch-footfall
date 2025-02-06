@@ -8,6 +8,7 @@ from datetime import datetime, timedelta
 
 from api.data_app.counter import VisitorCounter
 from date_randomseed.random_seed import RandomSeed
+logging.info("successfuly loaded from date_randomseed.random_seed import RandomSeed")
 
 
 # ----------------------------------------------------------------

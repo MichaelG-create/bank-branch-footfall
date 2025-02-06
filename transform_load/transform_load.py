@@ -4,6 +4,7 @@ with possible errors to clean parquet"""
 
 import logging
 import os
+import subprocess
 
 import duckdb
 from fuzzywuzzy import process
@@ -318,6 +319,13 @@ class DataPipeline:
 def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
     """load agency_names in a list from the db"""
     # Connect to the DuckDB database
+    # Check if the database exists
+    if not os.path.exists(path):
+        # Si elle n'existe pas, initialiser la base de données
+        # If connection fails, initialize the database by running the init script
+        logging.warning("Database not found at %s. Initializing database.",path)
+        subprocess.run(["python", "data/data_base/init_agencies_db.py"], check=True)
+
     conn = duckdb.connect(path)
 
     # Execute the query and load the result directly into a pandas DataFrame
@@ -339,7 +347,7 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 if __name__ == "__main__":
     logging.info("Running data_pipeline")
     PROJECT_PATH = ""
-    DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
+    DB_PATH = PROJECT_PATH + "data/data_base/agencies.duckdb"
     TABLE = "agencies"
 
     # Initialize SparkSession
