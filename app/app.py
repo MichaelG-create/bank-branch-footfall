@@ -202,7 +202,7 @@ def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFra
 
 if __name__ == "__main__":
 
-    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PROJECT_PATH = "//"
     # parquet file location (directly read in duckdb (memory costless))
     FOLDER_PATH = PROJECT_PATH + "data/filtered/agencies_daily_visitor_count/"
     parquet_files = glob.glob(FOLDER_PATH + "*.parquet")

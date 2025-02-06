@@ -25,15 +25,15 @@ with DAG(
     run_this_first = BashOperator(
         task_id="run_first_EXTRACT",
         bash_command="export PYTHONPATH=$PYTHONPATH:"
-        "/home/michael/ProjetPerso/Banking_Agency_Traffic && "
-        "python3 /home/michael/ProjetPerso/Banking_Agency_Traffic/extract/query_api.py "
+        "/home/michael/ProjetPerso/bank-branch-footfall && "
+        "python3 /home/michael/ProjetPerso/bank-branch-footfall/etl/extract.py "
         '"$(date +"%Y-%m-%d %H:%M")"',
     )
 
     run_this_second = BashOperator(
         task_id="run_this_second_TRANSFORM",
-        bash_command="python3 /home/michael/ProjetPerso/Banking_Agency_Traffic/transform/"
-        "data_pipeline.py",
+        bash_command="python3 /home/michael/ProjetPerso/bank-branch-footfall/etl/"
+        "transform_load.py",
     )
 
     run_this_first >> run_this_second  # pylint: disable= W0104

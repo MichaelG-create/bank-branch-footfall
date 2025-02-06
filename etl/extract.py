@@ -7,7 +7,7 @@ date_time=2025-05-29_09:00&agency_name=Lyon_1&counter_id=0
 Loop on multiple dates and hours to create analytical reports
 
 CLI usage :
-python3 query_api.py
+python3 extract.py
 """
 
 import calendar
@@ -100,7 +100,7 @@ def validate_cli_parameters(sys_argv, m=2, n=4):
     # check passed arguments
     if not m <= len(sys_argv) <= n:
         logging.warning(
-            "Usage: python3 query_api.py <date_string> <agency_name> <counter_id>"
+            "Usage: python3 extract.py <date_string> <agency_name> <counter_id>"
         )
         sys.exit(1)  # stops with an error code
 
@@ -366,7 +366,7 @@ if __name__ == "__main__":
     # logging.error("An error occurred")
 
     # local db settings
-    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PROJECT_PATH = "//"
     PATH_DB = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 

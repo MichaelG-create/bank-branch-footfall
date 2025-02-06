@@ -30,8 +30,8 @@ with DAG(
 
         # Use the theoretical time in the bash command
         bash_command = (
-            f"export PYTHONPATH=$PYTHONPATH:/home/michael/ProjetPerso/Banking_Agency_Traffic && "
-            f"python3 /home/michael/ProjetPerso/Banking_Agency_Traffic/extract/query_api.py "
+            f"export PYTHONPATH=$PYTHONPATH:/home/michael/ProjetPerso/bank-branch-footfall && "
+            f"python3 /home/michael/ProjetPerso/bank-branch-footfall/etl/extract.py "
             f'"{theoretical_time}"'
         )
         os.system(bash_command)
@@ -44,8 +44,8 @@ with DAG(
             execution_date.day == 1 and execution_date.hour == 0
         ):  # Check if it's the first of the month so run it
             os.system(
-                "python3 /home/michael/ProjetPerso/Banking_Agency_Traffic/transform/"
-                "data_pipeline.py"
+                "python3 /home/michael/ProjetPerso/bank-branch-footfall/etl/"
+                "transform_load.py"
             )
 
     # Setting up dependencies

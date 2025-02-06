@@ -193,7 +193,7 @@ def read_agency_db(path, table_name):
 
 
 if __name__ == "__main__":
-    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PROJECT_PATH = "//"
     DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     DB_TABLE = "agencies"
     create_agencies_db(DB_PATH, DB_TABLE)

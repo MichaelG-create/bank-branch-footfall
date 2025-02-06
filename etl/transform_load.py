@@ -338,7 +338,7 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 # Example Usage
 if __name__ == "__main__":
     logging.info("Running data_pipeline")
-    PROJECT_PATH = "/home/michael/ProjetPerso/Banking_Agency_Traffic/"
+    PROJECT_PATH = "//"
     DB_PATH = PROJECT_PATH + "api/data_app/db/agencies.duckdb"
     TABLE = "agencies"
 
