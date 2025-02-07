@@ -6,5 +6,5 @@ RUN pip install --no-cache-dir -r requirements-web_app.txt
 
 # COPY web_app/ /app/web_app
 
-# CMD ["streamlit", "run", "web_app/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
-CMD ["bash"]
+CMD ["streamlit", "run", "web_app/app.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# CMD ["bash"]
