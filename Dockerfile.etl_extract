@@ -4,9 +4,10 @@ WORKDIR /app
 COPY extract/requirements-etl_extract.txt .
 RUN pip install --no-cache-dir -r requirements-etl_extract.txt
 
-COPY extract/extract.py /app/extract/extract.py
+# COPY extract/extract.py /app/extract/extract.py
 
 # date_randomseed sub module
-COPY date_randomseed/ /app/date_randomseed/
+# COPY date_randomseed/ /app/date_randomseed/
 
-CMD ["python3", "-m extract.extract"]
+# CMD ["python3", "-m", "extract.extract"]
+CMD ["bash"]

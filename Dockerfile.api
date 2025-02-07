@@ -5,9 +5,10 @@ COPY api/requirements-api.txt .
 RUN pip install --no-cache-dir -r requirements-api.txt
 
 # sub-modules imports needs this architecture
-COPY api/ /app/api/
+# COPY api/ /app/api/
 
 # date_randomseed sub module
-COPY date_randomseed/ /app/date_randomseed/
+# COPY date_randomseed/ /app/date_randomseed/
 
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["bash"]

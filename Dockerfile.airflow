@@ -4,6 +4,7 @@ WORKDIR /opt/airflow
 COPY airflow/requirements-airflow.txt .
 RUN pip install --no-cache-dir -r requirements-airflow.txt
 
-COPY airflow/dags /opt/airflow/dags
+# COPY airflow/dags /opt/airflow/dags
 
-CMD ["airflow", "standalone"]
+# CMD ["airflow", "standalone"]
+CMD ["bash"]
