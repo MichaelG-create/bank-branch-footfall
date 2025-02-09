@@ -390,7 +390,7 @@ if __name__ == "__main__":
         "parquet_schema": parquet_schema,
         # "file_path": "data/raw/2024/*.csv",
         "file_path": PROJECT_PATH + "data/raw/*.csv",
-        "output_path": PROJECT_PATH + "data/filtered",
+        "output_path": PROJECT_PATH + "data/filtered/parquet",
         "agency_names": agency_names,
     }
 

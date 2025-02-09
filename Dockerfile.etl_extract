@@ -1,8 +1,12 @@
 FROM python:3.12-slim
 WORKDIR /app
 
+# Crée un répertoire pour stocker le cache pip (re-build images faster)
+RUN mkdir -p /root/.cache/pip
+
 COPY extract/requirements-etl_extract.txt .
-RUN pip install --no-cache-dir -r requirements-etl_extract.txt
+# RUN pip install --no-cache-dir -r requirements-etl_extract.txt
+RUN pip install -r requirements-etl_extract.txt --cache-dir=/root/.cache/pip
 
 # COPY extract/extract.py /app/extract/extract.py
 
@@ -10,4 +14,4 @@ RUN pip install --no-cache-dir -r requirements-etl_extract.txt
 # COPY date_randomseed/ /app/date_randomseed/
 
 # CMD ["python3", "-m", "extract.extract"]
-CMD ["bash"]
+# CMD ["bash"]

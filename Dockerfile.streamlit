@@ -1,8 +1,12 @@
 FROM python:3.12-slim
 WORKDIR /app
 
+# Crée un répertoire pour stocker le cache pip (re-build images faster)
+RUN mkdir -p /root/.cache/pip
+
 COPY web_app/requirements-web_app.txt .
-RUN pip install --no-cache-dir -r requirements-web_app.txt
+# RUN pip install --no-cache-dir -r requirements-web_app.txt
+RUN pip install -r requirements-web_app.txt --cache-dir=/root/.cache/pip
 
 # COPY web_app/ /app/web_app
 

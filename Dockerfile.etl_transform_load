@@ -6,24 +6,45 @@ WORKDIR /app
 
 # Installation de Spark et PySpark
 # Mise à jour et installation des dépendances nécessaires
-RUN apt-get update && apt-get install -y wget \
-    && apt-get update && apt-get install -y procps \
-    && apt-get install -y openjdk-17-jdk --no-install-recommends \
-    && wget https://archive.apache.org/dist/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz \
-    && tar -xvzf spark-3.5.4-bin-hadoop3.tgz \
-    && mv spark-3.5.4-bin-hadoop3 /opt/spark
+
+# Crée un répertoire pour stocker le cache apt
+RUN mkdir -p /root/.apt-cache && \
+    ln -s /root/.apt-cache /var/cache/apt
+
+RUN apt-get update -o Dir::Cache=/root/.apt-cache
+RUN apt-get install -y wget -o Dir::Cache=/root/.apt-cache
+RUN apt-get install -y procps -o Dir::Cache=/root/.apt-cache
+
+RUN apt-get install -y openjdk-17-jdk --no-install-recommends -o Dir::Cache=/root/.apt-cache
+
+# Téléchargement de Spark si l'archive n'existe pas déjà
+RUN mkdir -p /opt/spark_cache
+RUN if [ ! -f /opt/spark_cache/spark-3.5.4-bin-hadoop3.tgz ]; then \
+    wget https://archive.apache.org/dist/spark/spark-3.5.4/spark-3.5.4-bin-hadoop3.tgz -P /opt/spark_cache/; \
+    fi
+
+# Extraction de l'archive
+RUN tar -xvzf /opt/spark_cache/spark-3.5.4-bin-hadoop3.tgz -C /opt
+
+# Renommage du dossier
+RUN mv /opt/spark-3.5.4-bin-hadoop3 /opt/spark
 
 # Définition des variables d'environnement nécessaires pour Spark
 ENV SPARK_HOME=/opt/spark
 ENV PATH=$SPARK_HOME/bin:$PATH
 
-# Copie et installation des dépendances Python
+# Crée un répertoire pour stocker le cache pip
+RUN mkdir -p /root/.cache/pip
+
+# Copie et installation des dépendances Python en utilisant le cache (rapidité de reconstruction des images)
 COPY transform_load/requirements-etl_transform_load.txt .
-RUN pip install --no-cache-dir -r requirements-etl_transform_load.txt
+RUN pip install -r requirements-etl_transform_load.txt --cache-dir=/root/.cache/pip
 
 # Copie du script de transformation
 # COPY transform_load/transform_load.py /app/transform_load/transform_load.py
 
 # Commande pour soumettre le job Spark
 # CMD ["spark-submit", "transform_load/transform_load.py"]
-CMD ["bash"]
+# CMD ["bash"]
+# CMD ["sleep", "infinity"]
+

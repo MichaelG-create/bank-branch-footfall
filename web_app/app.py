@@ -204,7 +204,7 @@ if __name__ == "__main__":
 
     PROJECT_PATH = ""
     # parquet file location (directly read in duckdb (memory costless))
-    FOLDER_PATH = PROJECT_PATH + "data/filtered/"
+    FOLDER_PATH = PROJECT_PATH + "data/filtered/parquet/"
     parquet_files = glob.glob(FOLDER_PATH + "*.parquet")
 
     # Get file names (just the names without full paths)
