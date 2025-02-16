@@ -11,6 +11,7 @@ Dans un contexte où l’optimisation des espaces et des effectifs est clé, ce 
 ✅ **Exploiter ces analyses dans d’autres secteurs** comme les commerces, musées ou transports.  
 
 ## 🏗️ **Architecture du projet**  
+![data-flow-diagram](data-flow-diagram.png)
 
 ### 1️⃣ **API FastAPI** 🌐  
 Une API REST générant des données sur le nombre de visiteurs entrant dans une agence bancaire par heure.  
@@ -34,7 +35,8 @@ Une interface interactive où l’utilisateur peut sélectionner :
 🚀 **FastAPI** – API REST  
 🐍 **Python** – Extraction des données  
 ⚡ **Apache Spark** – Traitement et transformation  
-📦 **Parquet** – Stockage optimisé  
+📦 **Parquet** – Stockage optimisé
+🦆 **DuckDB** – Chargement de Parquet vers DB   
 🛩 **Apache Airflow** – Orchestration du pipeline  
 📊 **Streamlit** – Visualisation interactive  
 
@@ -46,20 +48,33 @@ git clone https://github.com/MichaelG-create/bank-branch-footfall.git
 cd bank-branch-footfall
 ```
 
+### 🚀 **1. Créer un venv et installer le requirements.txt **  
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
 ### 🌐 **2. Lancer l’API**  
 ```bash
-uvicorn api.main:app --reload
+uvicorn api.app:app --reload
 ```
 📍 Accès à la documentation interactive : [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)  
 
 ### 🔄 **3. Exécuter le pipeline ETL**  
 ```bash
-python etl/extract.py  # Extraction des données API
-python etl/transfrom_load.py  # Transformation et chargement
+python3 extract/extract.py  # Extraction des données API
+python3 transfrom_load/transfrom_load.py  # Transformation et chargement
 ```
 
 ### ⏳ **4. Lancer Airflow**  
 Démarrer Airflow et activer les DAGs pour l’orchestration.  
+```bash
+airflow standalone
+```
+Les DAGS : 
+- banking_pipeline.py : DAG de fonctionnement en temps réel
+- banking_pipeline_back.py : DAG de backfill
 
 ### 📊 **5. Lancer Streamlit**  
 ```bash
