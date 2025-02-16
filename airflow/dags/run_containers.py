@@ -9,7 +9,9 @@ default_args = {
     "retries": 1,
 }
 
-with DAG("run_containers", default_args=default_args, schedule_interval=None, catchup=False) as dag:
+with DAG(
+    "run_containers", default_args=default_args, schedule_interval=None, catchup=False
+) as dag:
 
     extract_task = DockerOperator(
         task_id="run_etl_extract",
