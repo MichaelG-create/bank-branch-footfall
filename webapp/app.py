@@ -1,9 +1,9 @@
 """Streamlit APP displaying sensors traffic temporal series"""
 
 import calendar
+import glob
 from datetime import date, datetime, timedelta
 
-import glob
 import duckdb
 import pandas as pd
 import plotly.express as px

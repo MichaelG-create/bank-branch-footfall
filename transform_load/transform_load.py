@@ -323,7 +323,7 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
     if not os.path.exists(path):
         # Si elle n'existe pas, initialiser la base de données
         # If connection fails, initialize the database by running the init script
-        logging.warning("Database not found at %s. Initializing database.",path)
+        logging.warning("Database not found at %s. Initializing database.", path)
         subprocess.run(["python", "data/data_base/init_agencies_db.py"], check=True)
 
     conn = duckdb.connect(path)

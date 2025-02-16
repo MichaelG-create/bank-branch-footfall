@@ -64,7 +64,7 @@ services:
     ports:
       - "8501:8501"
     volumes:
-      - ./web_app:/app/web_app
+      - ./webapp:/app/webapp
       - ./data/filtered:/app/data/filtered
       - pip_cache_web_app:/root/.cache/pip
     networks:

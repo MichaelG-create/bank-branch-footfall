@@ -63,7 +63,7 @@ Démarrer Airflow et activer les DAGs pour l’orchestration.
 
 ### 📊 **5. Lancer Streamlit**  
 ```bash
-streamlit run web_app/app.py
+streamlit run webapp/app.py
 ```
 📍 Interface de visualisation des données en temps réel.  
 

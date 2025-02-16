@@ -3,7 +3,7 @@ import subprocess
 
 def generate_requirements(base_path):
     # Dossiers spécifiques à lire
-    subdirs_to_include = ['airflow/dags', 'api', 'web_app', 'etl', 'tests']
+    subdirs_to_include = ['airflow/dags', 'api', 'webapp', 'etl', 'tests']
     
     for subdir in subdirs_to_include:
         subdir_path = os.path.join(base_path, subdir)
