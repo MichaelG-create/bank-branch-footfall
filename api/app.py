@@ -5,7 +5,7 @@ and its method get_visitor_count
 at a certain date
 e.g. :
 /get_visitor_count?date_time=2025-05-29_09:05
-
+http://127.0.0.1:8000/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1
 TO LAUNCH it locally :
 in this project folder, with venv activated :
 uvicorn api.app:app --reload
@@ -17,7 +17,7 @@ from fastapi import FastAPI, HTTPException
 
 from api.data_app import create_agencies
 
-DB_PATH = "api/data_app/db/agencies.duckdb"
+DB_PATH = "data/data_base/agencies.duckdb"
 TABLE_NAME = "agencies"
 
 # Obtain the agencies as {agency_name: agency_object, etc.)
