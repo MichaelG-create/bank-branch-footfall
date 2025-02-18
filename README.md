@@ -14,6 +14,8 @@ Dans un contexte où l’optimisation des espaces et des effectifs est clé, ce 
 ![data-flow-diagram](data-flow-diagram.png)
 
 ### 1️⃣ **API FastAPI** 🌐  
+[API live](https://bank-branch-footfall.onrender.com/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1)
+
 Une API REST générant des données sur le nombre de visiteurs entrant dans une agence bancaire par heure.  
 
 ### 2️⃣ **Pipeline ETL** 🔄  
@@ -26,6 +28,8 @@ Une API REST générant des données sur le nombre de visiteurs entrant dans une
 - **🔄 DAG de backfill** : Recharge des données après une panne pour éviter toute perte.  
 
 ### 4️⃣ **Visualisation avec Streamlit** 📊  
+[Application live](https://bank-branch-footfall.streamlit.app/)
+
 Une interface interactive où l’utilisateur peut sélectionner :  
 ✔️ Une agence bancaire  
 ✔️ Un détecteur spécifique  
