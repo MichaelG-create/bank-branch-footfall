@@ -92,7 +92,7 @@ async def get_visitor_count(
     except ValueError as exc:
         raise HTTPException(
             status_code=404,
-            detail=f"""Error in the date {date_time}, Date should look like :2023-12-31_09:45 """,
+            detail=f"""Error in the date {date_time}, Date should look like :2023-12-31 09:45 (use %20 for space character between date and hour)""",
         ) from exc
 
     except IndexError as exc:
