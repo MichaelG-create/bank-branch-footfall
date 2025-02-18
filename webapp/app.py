@@ -1,7 +1,6 @@
 """Streamlit APP displaying sensors traffic temporal series
 [Application live](https://bank-branch-footfall.streamlit.app/)"""
 
-
 import calendar
 import glob
 from datetime import date, datetime, timedelta
