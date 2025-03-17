@@ -2,6 +2,8 @@
 .idea
 *.duckdb
 *.parquet
+*.parquet.crc
+*_SUCCESS*
 airflow*.*
 webserver_config.py
 logs*
@@ -11,3 +13,4 @@ __pycache__/
 spark_cache
 *.pyc
 *.pyo
+.vscode/

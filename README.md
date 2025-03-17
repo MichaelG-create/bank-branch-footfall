@@ -85,8 +85,11 @@ streamlit run webapp/app.py
 ## 🔮 **Perspectives et améliorations futures**  
 🔹 **Prise en compte des événements exceptionnels** (jours fériés, promotions, météo).  
 🔹 **Ajout d’un modèle de prédiction** pour anticiper les flux.  
-🔹 **Intégration d’une base distribuée** (Delta Lake, BigQuery) pour une scalabilité accrue.  
 🔹 **Mise en place d’alertes et notifications** en cas d’affluence anormale.  
+🔹 **Création d'un dashboard avec Grafana** pour suivre l'état de santé du pipeline en temps réel.  
+🔹 **Conteneurisation** avec Docker pour un déploiement facilité du projet complet.  
+🔹 **Déploiement sur le cloud** vers GCP pour une scalabilité accrue.  
+
 
 ## 👤 **Auteur**  
 Développé par Michael Garcia, passionné par la data engineering et l’automatisation des pipelines de données.
