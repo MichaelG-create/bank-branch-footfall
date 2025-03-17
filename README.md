@@ -92,7 +92,7 @@ streamlit run webapp/app.py
 🔹 **Intégration d’une base distribuée** (Delta Lake, BigQuery) pour une scalabilité accrue.  
 🔹 **Mise en place d’alertes et notifications** en cas d’affluence anormale.
 🔹 **Création d'un dashboard avec Grafana** pour suivre l'état de santé du pipeline en temps réel.
-🔹 **Conteneurisation** avec Docker pour un déploiement facilité du projet complet.  
+🔹 **Conteneurisation** avec Docker pour un déploiement facilité du projet complet.
 🔹 **Déploiement sur le cloud** vers GCP de tout le projet (GKE pour l'ETL, Cloud Storage pour les données).  
 
 ## 👤 **Auteur**  
