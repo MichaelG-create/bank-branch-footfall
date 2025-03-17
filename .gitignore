@@ -1,10 +1,13 @@
 /.venv
 .idea
 *.duckdb
+*.parquet
 airflow*.*
 webserver_config.py
 logs*
 Dockerfile
-**/__pycache__/
+__pycache__/
 *password*
 spark_cache
+*.pyc
+*.pyo
