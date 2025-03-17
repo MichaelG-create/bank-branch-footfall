@@ -4,7 +4,13 @@ using the class VisitorCounter
 and its method get_visitor_count
 at a certain date
 e.g. :
-/get_visitor_count?date_time=2025-05-29_09:05
+
+web version:
+https://bank-branch-footfall.onrender.com/
+get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1
+
+local version:
+
 http://127.0.0.1:8000/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1
 TO LAUNCH it locally :
 in this project folder, with venv activated :
@@ -92,7 +98,8 @@ async def get_visitor_count(
     except ValueError as exc:
         raise HTTPException(
             status_code=404,
-            detail=f"""Error in the date {date_time}, Date should look like :2023-12-31_09:45 """,
+            detail=f"""Error in the date {date_time}, date should look like :2023-12-31 09:45
+            (use %20 for space character between date and hour)""",
         ) from exc
 
     except IndexError as exc:

@@ -1,13 +1,25 @@
 FROM python:3.12-slim
 WORKDIR /app
 
+# Crée un répertoire pour stocker le cache pip (re-build images faster)
+RUN mkdir -p /root/.cache/pip
+
 COPY api/requirements-api.txt .
-RUN pip install --no-cache-dir -r requirements-api.txt
+# RUN pip install --no-cache-dir -r requirements-api.txt
+RUN pip install -r requirements-api.txt --cache-dir=/root/.cache/pip
 
+# COPY not need if use docker-compose but needed if direct use dockerfile (GCP)
 # sub-modules imports needs this architecture
-COPY api/ /app/api/
+# COPY api/ /app/api/
 
+# COPY not need if use docker-compose but needed if direct use dockerfile (GCP)
 # date_randomseed sub module
-COPY date_randomseed/ /app/date_randomseed/
+# COPY date_randomseed/ /app/date_randomseed/
 
-CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# COPY not need if use docker-compose but needed if direct use dockerfile (GCP)
+# CMD ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
+# CMD ["bash"]
+
+- ./api:/app/api  # for the api code (dev)
+- ./data/data_base:/app/data/data_base  # for the agencies names and counters database
+- ./date_randomseed:/app/date_randomseed

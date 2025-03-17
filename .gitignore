@@ -1,7 +1,5 @@
 /.venv
 .idea
-temp.py
-*DEBUG*
 *.duckdb
 airflow*.*
 webserver_config.py
@@ -9,4 +7,4 @@ logs*
 Dockerfile
 **/__pycache__/
 *password*
-read_parquet_file.py
+spark_cache

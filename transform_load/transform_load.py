@@ -323,7 +323,7 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
     if not os.path.exists(path):
         # Si elle n'existe pas, initialiser la base de données
         # If connection fails, initialize the database by running the init script
-        logging.warning("Database not found at %s. Initializing database.",path)
+        logging.warning("Database not found at %s. Initializing database.", path)
         subprocess.run(["python", "data/data_base/init_agencies_db.py"], check=True)
 
     conn = duckdb.connect(path)
@@ -389,8 +389,8 @@ if __name__ == "__main__":
         "schema": schema,
         "parquet_schema": parquet_schema,
         # "file_path": "data/raw/2024/*.csv",
-        "file_path": PROJECT_PATH + "data/raw/cli/*.csv",
-        "output_path": PROJECT_PATH + "data/filtered",
+        "file_path": PROJECT_PATH + "data/raw/*.csv",
+        "output_path": PROJECT_PATH + "data/filtered/parquet",
         "agency_names": agency_names,
     }
 
