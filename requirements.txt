@@ -8,7 +8,7 @@ pandas==2.2.3
 pendulum==3.0.0
 plotly==6.0.0
 pyspark==3.5.4
-Requests==2.32.3
+Requests==2.32.4
 streamlit==1.41.1
 uvicorn==0.34.0
 pylint==3.3.4
