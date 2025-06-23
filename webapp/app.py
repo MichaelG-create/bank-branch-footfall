@@ -15,12 +15,12 @@ def get_sensor_list(parquet_file: str) -> list[tuple[str, int]]:
     """reads the parquet file and returns the list of (agencies, sensors)"""
     # pylint: disable=C0303
     query = f"""
-            WITH agency_sensors_cte AS (  
-              SELECT DISTINCT agency_name, counter_id 
-              FROM {parquet_file} 
+            WITH agency_sensors_cte AS (
+              SELECT DISTINCT agency_name, counter_id
+              FROM {parquet_file}
               -- LIMIT 1000
               ORDER BY agency_name, counter_id)
-            
+
             SELECT agency_name, counter_id
             FROM agency_sensors_cte;
             """
@@ -160,15 +160,15 @@ def get_sensor_dataframe(
 
     if time_delta is None:
         query = f"""
-                  SELECT * 
-                  FROM {parquet_file} 
+                  SELECT *
+                  FROM {parquet_file}
                   WHERE agency_name = '{agency_n}' and counter_id = {counter_i}
                   ORDER BY agency_name, counter_id, date;
                 """
     else:
         query = f"""
-                          SELECT * 
-                          FROM {parquet_file} 
+                          SELECT *
+                          FROM {parquet_file}
                           WHERE agency_name = '{agency_n}' and counter_id = {counter_i}
                           and date >= '{time_delta[0]}'::DATE and date <= '{time_delta[1]}'::DATE
                           ORDER BY agency_name, counter_id, date;
@@ -202,7 +202,6 @@ def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFra
 
 
 if __name__ == "__main__":
-
     PROJECT_PATH = ""
     # parquet file location (directly read in duckdb (memory costless))
     FOLDER_PATH = PROJECT_PATH + "data/filtered/parquet/"

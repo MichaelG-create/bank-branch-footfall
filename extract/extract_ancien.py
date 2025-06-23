@@ -202,7 +202,7 @@ def load_agency_name_counter_num_from_db(path, table_name):
 
     data_f = conn.execute(
         f"""
-        SELECT agency_name, counter_number 
+        SELECT agency_name, counter_number
         FROM {table_name}
         ORDER BY agency_name, counter_number
     """
@@ -371,7 +371,6 @@ def clean_date(date_string: str):
 
 
 if __name__ == "__main__":
-
     logging.info("Script started")
     # logging.warning("This is a warning")
     # logging.error("An error occurred")
@@ -394,13 +393,9 @@ if __name__ == "__main__":
     # minimum : 1 date_time
     validate_cli_parameters(sys.argv)
 
-    
-
     # Request from CLI: 1 date_time, (+1 agency, (+1 counter_id)) (single row)
     date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
-    date_str, date_type = get_date_format(
-        date_str
-    )  #'hour', 'day', 'month' or 'year'
+    date_str, date_type = get_date_format(date_str)  #'hour', 'day', 'month' or 'year'
 
     date_range, date_range_str = get_date_range(date_str, date_type)
 
@@ -460,6 +455,3 @@ if __name__ == "__main__":
         logging.info("DataFrame created -> saving %s in %s", FILE_NAME, PATH_NAME)
         event_df.to_csv(PATH_NAME + FILE_NAME, index=False)
         logging.info("File successfully saved")
-
-
-
