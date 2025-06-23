@@ -52,7 +52,7 @@ git clone https://github.com/MichaelG-create/bank-branch-footfall.git
 cd bank-branch-footfall
 ```
 
-### 🚀 **2. Créer un venv et installer le requirements.txt **  
+### 🚀 **2. Créer un venv et installer le requirements.txt**  
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
