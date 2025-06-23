@@ -4,9 +4,7 @@
 (real_time)
 """
 
-# in airflow directory :
-# export AIRFLOW_HOME=$(pwd)
-
+import os
 import datetime
 
 import pendulum
@@ -14,25 +12,26 @@ import pendulum
 from airflow.models.dag import DAG
 from airflow.operators.bash import BashOperator
 
+project_home = os.getenv("PROJECT_HOME")
+
 with DAG(
     dag_id="banking_production_pipeline",
     description="hourly extract data from an API, then transform it to a parquet file ",
     start_date=pendulum.datetime(2024, 1, 1, 0, 0, tz="UTC"),
-    schedule="0 * * * *",  # every minute 0 (so every hour)
+    schedule="0 * * * *"  # Every hour at minute 0
     catchup=False,
     dagrun_timeout=datetime.timedelta(minutes=60),
 ) as dag:
     run_this_first = BashOperator(
         task_id="run_first_EXTRACT",
-        bash_command="export PYTHONPATH=$PYTHONPATH:"
-        "/home/michael/ProjetPerso/bank-branch-footfall && "
-        "python3 /home/michael/ProjetPerso/bank-branch-footfall/extract/extract.py "
+        bash_command="export PYTHONPATH=$PYTHONPATH:{project_home} && "
+        "python3 {project_home}/extract/extract.py "
         '"$(date +"%Y-%m-%d %H:%M")"',
     )
 
     run_this_second = BashOperator(
         task_id="run_this_second_TRANSFORM",
-        bash_command="python3 /home/michael/ProjetPerso/bank-branch-footfall/transform_load/"
+        bash_command="python3 {project_home}/transform_load/"
         "transform_load.py",
     )
 

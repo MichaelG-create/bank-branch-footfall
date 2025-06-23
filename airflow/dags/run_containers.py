@@ -16,7 +16,7 @@ with DAG(
     extract_task = DockerOperator(
         task_id="run_etl_extract",
         image="bank-branch-footfall_etl_extract:latest",
-        auto_remove=True,
+        auto_remove='success',
         command=["python", "extract/extract.py"],
         network_mode="bridge",
     )
@@ -24,7 +24,7 @@ with DAG(
     transform_task = DockerOperator(
         task_id="run_etl_transform",
         image="bank-branch-footfall_etl_transform_load:latest",
-        auto_remove=True,
+        auto_remove='success',
         command=["python", "transform_load/transform_load.py"],
         network_mode="bridge",
     )
@@ -32,7 +32,7 @@ with DAG(
     web_app_task = DockerOperator(
         task_id="run_web_app",
         image="bank-branch-footfall_web_app:latest",
-        auto_remove=True,
+        auto_remove='success',
         command=["streamlit", "run", "app/app.py"],
         network_mode="bridge",
     )
