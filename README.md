@@ -58,6 +58,13 @@ python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
+Alternatvie avec uv (plus rapide)
+```bash
+uv venv
+source .venv/bin/activate
+uv pip install -r requirements.txt
+```
+
 
 ### 🌐 **3. Lancer l’API**  
 ```bash
