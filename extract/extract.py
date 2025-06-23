@@ -253,7 +253,7 @@ def add_random_error_to_row(row_df: dict) -> dict:
 
 def add_error_or_keep(
     data: str | int | float, pct_err: float = 0.01
-) -> str | int | None:
+) -> str | int | float | None:
     """randomly add an error to the data given
     if the random number is under err_pct (typically 5%)"""
 
@@ -304,7 +304,7 @@ def initiate_event_df():
 
 def get_api_response(
     api, agency_nam: str, counter_id: int, date_string: str
-) -> (dict | str, dict):
+) -> tuple[dict | str, dict]:
     """request api and get JSON response"""
     json_response = api.request_api(date_string, agency_nam, counter_id)
     new_line = add_random_error_to_row(json_response)
@@ -313,7 +313,7 @@ def get_api_response(
     return json_response, new_line
 
 
-def get_date_range(date_tim, date_kind) -> (pd.DatetimeIndex, str):
+def get_date_range(date_tim, date_kind) -> tuple[pd.DatetimeIndex, str]:
     """
     :param date_tim: get the date range within a month
     :param date_kind: kind of date we have 'hour', 'day', 'month'
@@ -394,53 +394,72 @@ if __name__ == "__main__":
     # minimum : 1 date_time
     validate_cli_parameters(sys.argv)
 
+    
+
     # Request from CLI: 1 date_time, (+1 agency, (+1 counter_id)) (single row)
-    if len(sys.argv) >= 2:
-        date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
-        date_str, date_type = get_date_format(
-            date_str
-        )  #'hour', 'day', 'month' or 'year'
+    date_str, agency_name, id_counter = get_cli_parameters(sys.argv)
+    date_str, date_type = get_date_format(
+        date_str
+    )  #'hour', 'day', 'month' or 'year'
 
-        date_range, date_range_str = get_date_range(date_str, date_type)
+    date_range, date_range_str = get_date_range(date_str, date_type)
 
-        if agency_name is None:
-            # loop over all agencies and sensors
-            # use local database to load agency_name and corresponding counter_num
-            agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
-            agency_counter_num_list = agency_df[
-                ["agency_name", "counter_number"]
-            ].values.tolist()
+    if agency_name is None:
+        # loop over all agencies and sensors
+        # use local database to load agency_name and corresponding counter_num
+        agency_df = load_agency_name_counter_num_from_db(PATH_DB, TABLE)
+        agency_counter_num_list = agency_df[
+            ["agency_name", "counter_number"]
+        ].values.tolist()
 
-            event_df = initiate_event_df()
+        event_df = initiate_event_df()
 
-            # loop over all agencies and sensors
-            for date_i in date_range:
-                if date_i.hour == 0:
-                    logging.info("Treating date: %s", date_i.date())
-                for agency_name, counter_num in agency_counter_num_list:
-                    for id_counter in range(counter_num):
-                        new_row = get_this_date_agency_counter_count(
-                            render_api, date_i, agency_name, id_counter
-                        )
-                        try:
-                            event_df = pd.concat([event_df, new_row], ignore_index=True)
-                        except ValueError as v:
-                            logging.error(v)
+        # loop over all agencies and sensors
+        for date_i in date_range:
+            if date_i.hour == 0:
+                logging.info("Treating date: %s", date_i.date())
+            for agency_name, counter_num in agency_counter_num_list:
+                for id_counter in range(counter_num):
+                    new_row = get_this_date_agency_counter_count(
+                        render_api, date_i, agency_name, id_counter
+                    )
+                    try:
+                        event_df = pd.concat([event_df, new_row], ignore_index=True)
+                    except ValueError as v:
+                        logging.error(v)
 
-            # Save event_df to CSV
-            CLEANED_DATE_STRING = clean_date(date_range_str)
-            FILE_NAME = f"event_df_all_agencies_{CLEANED_DATE_STRING}.csv"
-            PATH_NAME = f"{PROJECT_PATH}data/raw/"
-            logging.info("DataFrame created -> saving %s in %s", FILE_NAME, PATH_NAME)
-            event_df.to_csv(
-                PATH_NAME + FILE_NAME,
-                index=False,
-            )
-            logging.info("File successfully saved")
+        # Save event_df to CSV
+        CLEANED_DATE_STRING = clean_date(date_range_str)
+        FILE_NAME = f"event_df_all_agencies_{CLEANED_DATE_STRING}.csv"
+        PATH_NAME = f"{PROJECT_PATH}data/raw/"
+        logging.info("DataFrame created -> saving %s in %s", FILE_NAME, PATH_NAME)
+        event_df.to_csv(
+            PATH_NAME + FILE_NAME,
+            index=False,
+        )
+        logging.info("File successfully saved")
 
-        else:  # we have a specific agency_name and maybe a specific counter name
-            pass  # reconstruct this later
-
-    # Request from CLI less than 1 parameter: 1 date_time, (+1 agency, (+1 counter_id)) (single row)
     else:  # we have a specific agency_name and maybe a specific counter name
-        pass
+        event_df = initiate_event_df()
+
+        for date_i in date_range:
+            new_row = get_this_date_agency_counter_count(
+                render_api, date_i, agency_name, id_counter
+            )
+            try:
+                event_df = pd.concat([event_df, new_row], ignore_index=True)
+            except ValueError as v:
+                logging.error(v)
+
+        CLEANED_DATE_STRING = clean_date(date_range_str)
+        AGENCY_STR = agency_name.replace(" ", "_")
+        COUNTER_STR = f"_counter_{id_counter}" if id_counter >= 0 else "_all_counters"
+
+        FILE_NAME = f"event_df_{AGENCY_STR}{COUNTER_STR}_{CLEANED_DATE_STRING}.csv"
+        PATH_NAME = f"{PROJECT_PATH}data/raw/"
+        logging.info("DataFrame created -> saving %s in %s", FILE_NAME, PATH_NAME)
+        event_df.to_csv(PATH_NAME + FILE_NAME, index=False)
+        logging.info("File successfully saved")
+
+
+
