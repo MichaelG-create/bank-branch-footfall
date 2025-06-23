@@ -19,8 +19,8 @@ PARQUET_FILE = (
 
 # pylint: disable=C0303
 QUERY = f"""
-SELECT * 
-  FROM {PARQUET_FILE} 
+SELECT *
+  FROM {PARQUET_FILE}
   LIMIT 2
 """
 
