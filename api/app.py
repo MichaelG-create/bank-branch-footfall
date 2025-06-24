@@ -21,7 +21,7 @@ from datetime import datetime
 
 from fastapi import FastAPI, HTTPException
 
-from bank_footfall.api.data_app import create_agencies
+from api.data_app import create_agencies
 
 DB_PATH = "data/data_base/agencies.duckdb"
 TABLE_NAME = "agencies"

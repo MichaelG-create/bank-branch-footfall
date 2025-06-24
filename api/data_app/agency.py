@@ -6,8 +6,9 @@ Module implementing the Agency class used in the api
 import logging
 from datetime import datetime, timedelta
 
-from bank_footfall.api.data_app.counter import VisitorCounter
 from bank_footfall.date_randomseed.random_seed import RandomSeed
+
+from api.data_app.counter import VisitorCounter
 
 logging.info("successfuly loaded from date_randomseed.random_seed import RandomSeed")
 
