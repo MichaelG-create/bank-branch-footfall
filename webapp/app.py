@@ -193,22 +193,39 @@ def display_sensor_dataframe(df: pd.DataFrame):
 
 
 def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFrame):
-    """displays the history graph of the chosen sensor"""
-    # Melting the dataframe
-    df_part = df[["date", "daily_visitor_count", "prev_avg_4_visits"]]
-    df_melted = df_part.melt(
-        id_vars="date", var_name="daily_count", value_name="counting_type"
+    """Displays a prettier history graph of the chosen sensor"""
+    print(f"{df.columns} {df.shape} {agency_n} {counter_i}")
+    df_part = df[
+        [
+            "date",
+            "daily_visitor_count",
+            "prev_avg_4_visits",
+        ]
+    ]
+    # df_part = df[["date", "daily_visitor_count", "prev_avg_4_visits", "pct_change"]]
+    df_melted = df_part.melt(id_vars="date", var_name="Type", value_name="Count")
+    fig = px.line(
+        df_melted,
+        x="date",
+        y="Count",
+        color="Type",
+        markers=True,
+        color_discrete_sequence=px.colors.qualitative.Set2,
+        # height=600,  # Increased height
+        # width=1100,  # Optional: increase width if you want
+        hover_data={"date": "|%d-%m-%Y", "Count": ":,", "Type": True},
     )
-    # Creating the line chart
-    fig = px.line(df_melted, x="date", y="counting_type", color="daily_count")
-
     fig.update_layout(
-        title=f"Daily traffic for agency {agency_n} - sensor {counter_i}",
+        title=f"Trafic journalier - {agency_n} (capteur {counter_i})",
         xaxis_title="Date",
-        yaxis_title="Daily visitors",
+        yaxis_title="Visiteurs quotidiens",
+        legend_title="Type de comptage",
+        template="plotly_white",
+        hovermode="x unified",
+        margin=dict(l=40, r=40, t=60, b=40),
     )
-    ## Display the figure in Streamlit
-    st.plotly_chart(fig)
+    fig.update_traces(line=dict(width=2))
+    st.plotly_chart(fig, use_container_width=True)
 
 
 if __name__ == "__main__":
@@ -251,7 +268,8 @@ if __name__ == "__main__":
 
         elif time_period_choice == "year":
             # Optionally let user pick a year, or use current year
-            current_year = datetime.today().year
+            # current_year = datetime.today().year
+            current_year = 2024  # For testing purposes, set to a fixed year
             year = st.number_input(
                 "Select year:",
                 min_value=2000,
@@ -282,6 +300,19 @@ if __name__ == "__main__":
 
     data_f = get_sensor_dataframe(agency, sensor, PARQUET_FILE, time_period)
 
-    display_sensor_dataframe(data_f)
+    # Add this before displaying graph/data
+    if "show_data" not in st.session_state:
+        st.session_state.show_data = False
 
-    display_daily_graph_for_sensor(agency, sensor, data_f)
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("Graph"):
+            st.session_state.show_data = False
+    with col2:
+        if st.button("Data"):
+            st.session_state.show_data = True
+
+    if not st.session_state.show_data:
+        display_daily_graph_for_sensor(agency, sensor, data_f)
+    else:
+        display_sensor_dataframe(data_f)
