@@ -51,7 +51,6 @@ class VisitorCounter:
         try:
             # if the counter works
             if self.is_working(random_seed):
-
                 # generate random_visit_count (day base)
                 np.random.seed(random_seed)  # for reproducibility
                 random_visit_count = np.random.normal(
@@ -197,7 +196,6 @@ class VisitorCounter:
 
 
 if __name__ == "__main__":
-
     counter = VisitorCounter()
 
     # Testing : printing days and hours for a full month

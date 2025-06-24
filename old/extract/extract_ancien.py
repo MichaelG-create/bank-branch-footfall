@@ -25,7 +25,6 @@ import duckdb
 import numpy as np
 import pandas as pd
 import requests
-
 from date_randomseed.random_seed import RandomSeed
 
 # Configure logging

@@ -6,8 +6,9 @@ Module implementing the Agency class used in the api
 import logging
 from datetime import datetime, timedelta
 
-from api.data_app.counter import VisitorCounter
 from date_randomseed.random_seed import RandomSeed
+
+from api.data_app.counter import VisitorCounter
 
 logging.info("successfuly loaded from date_randomseed.random_seed import RandomSeed")
 
@@ -36,7 +37,6 @@ class Agency:
         base_traffic: int,
         counter_num: int = 1,
     ):  # pylint: disable=R0913, R0917
-
         self.name = name
         self.size = size
         self.location_type = location_type
@@ -175,7 +175,6 @@ class Agency:
 
 
 if __name__ == "__main__":
-
     big_agency_1 = Agency("Lyon_1", "big", "Metropolis", 500, 3)
 
     # Testing : printing days and hours for a full month
