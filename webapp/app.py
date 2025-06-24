@@ -58,6 +58,14 @@ def get_min_max_dates(agency_n: str, counter_i: int, parquet_file: str):
     return min(sensor_df["date"]), max(sensor_df["date"])
 
 
+# Function to get start and end dates for a specific year
+def get_year_dates(year=datetime.today().year):
+    """Retourne la date de début et de fin pour une année donnée."""
+    start_date = datetime(year, 1, 1)
+    end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
+    return start_date.date(), end_date.date()
+
+
 # Function to get start and end dates for a specific month
 def get_month_dates(month_name, year=datetime.today().year):
     """get start_date and end_date from a month choice"""
@@ -157,7 +165,9 @@ def get_sensor_dataframe(
 ) -> pd.DataFrame:
     """get sensor dataframe"""
     # pylint: disable=C0303
-
+    print(
+        f"Getting data for agency {agency_n} and sensor {counter_i} from {parquet_file}"
+    )
     if time_delta is None:
         query = f"""
                   SELECT *
@@ -211,6 +221,7 @@ if __name__ == "__main__":
     parquet_file_names = [file.split("/")[-1] for file in parquet_files]
 
     PARQUET_FILE = f"'{parquet_files[0]}'"
+    print(f"Using parquet file: {PARQUET_FILE}")
 
     agency_sensor_list = get_sensor_list(PARQUET_FILE)
 
@@ -225,9 +236,35 @@ if __name__ == "__main__":
         # choose to see traffic weekly, monthly or in a defined window
         st.title("Time period selection")
         time_period_choice = st.selectbox(
-            "Choose a time selection method ", ["month", "week", "time period"]
+            "Choose a time selection method ",
+            [
+                "year",
+                "month",
+                "week",
+                "time period",
+            ],
         )
-        if time_period_choice == "month":
+
+        if time_period_choice == "time period":
+            time_period = get_time_period(agency, sensor, PARQUET_FILE)
+            st.write(f"Selected date range: {time_period[0]} to {time_period[1]}")
+
+        elif time_period_choice == "year":
+            # Optionally let user pick a year, or use current year
+            current_year = datetime.today().year
+            year = st.number_input(
+                "Select year:",
+                min_value=2000,
+                max_value=current_year,
+                value=current_year,
+            )
+            time_period = get_year_dates(year)
+            st.write(
+                f"Selected year ({year}): "
+                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+            )
+
+        elif time_period_choice == "month":
             month = get_month_period()
             time_period = get_month_dates(month, 2024)
             st.write(
@@ -235,17 +272,13 @@ if __name__ == "__main__":
                 f"Start date = {time_period[0]}, End date = {time_period[1]}"
             )
 
-        if time_period_choice == "week":
+        elif time_period_choice == "week":
             week = get_weeks_period()
             time_period = get_week_dates(week, 2024)
             st.write(
                 f"Selected full week ({week}): "
                 f"Start date = {time_period[0]}, End date = {time_period[1]}"
             )
-
-        if time_period_choice == "time period":
-            time_period = get_time_period(agency, sensor, PARQUET_FILE)
-            st.write(f"Selected date range: {time_period[0]} to {time_period[1]}")
 
     data_f = get_sensor_dataframe(agency, sensor, PARQUET_FILE, time_period)
 

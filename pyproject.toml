@@ -45,4 +45,4 @@ ignore = ["E501"]
 
 # Configuration pour hatchling - spécifier où se trouve le code
 [tool.hatch.build.targets.wheel]
-packages = ["src/bank_footfall"]
+packages = ["bank_footfall"]
