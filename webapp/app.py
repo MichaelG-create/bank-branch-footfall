@@ -7,7 +7,6 @@ from datetime import date, datetime, timedelta
 
 import duckdb
 import pandas as pd
-import plotly.express as px
 import streamlit as st
 
 
@@ -177,12 +176,12 @@ def get_sensor_dataframe(
                 """
     else:
         query = f"""
-                          SELECT *
-                          FROM {parquet_file}
-                          WHERE agency_name = '{agency_n}' and counter_id = {counter_i}
-                          and date >= '{time_delta[0]}'::DATE and date <= '{time_delta[1]}'::DATE
-                          ORDER BY agency_name, counter_id, date;
-                        """
+                    SELECT *
+                    FROM {parquet_file}
+                    WHERE agency_name = '{agency_n}' and counter_id = {counter_i}
+                    and date >= '{time_delta[0]}'::DATE and date <= '{time_delta[1]}'::DATE
+                    ORDER BY agency_name, counter_id, date;
+                """
 
     return duckdb.sql(query).df()
 
@@ -194,37 +193,66 @@ def display_sensor_dataframe(df: pd.DataFrame):
 
 def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFrame):
     """Displays a prettier history graph of the chosen sensor"""
-    print(f"{df.columns} {df.shape} {agency_n} {counter_i}")
-    df_part = df[
-        [
-            "date",
-            "daily_visitor_count",
-            "prev_avg_4_visits",
-        ]
-    ]
-    # df_part = df[["date", "daily_visitor_count", "prev_avg_4_visits", "pct_change"]]
-    df_melted = df_part.melt(id_vars="date", var_name="Type", value_name="Count")
-    fig = px.line(
-        df_melted,
-        x="date",
-        y="Count",
-        color="Type",
-        markers=True,
-        color_discrete_sequence=px.colors.qualitative.Set2,
-        # height=600,  # Increased height
-        # width=1100,  # Optional: increase width if you want
-        hover_data={"date": "|%d-%m-%Y", "Count": ":,", "Type": True},
+    import plotly.graph_objects as go
+
+    fig = go.Figure()
+
+    # print(f"df.dtypes  = {df.dtypes}")
+    # # print(df[['date', 'pct_chge']].head())
+
+    # Série principale : visiteurs quotidiens
+    fig.add_trace(
+        go.Scatter(
+            x=df["date"],
+            y=df["daily_visitor_count"],
+            mode="lines+markers",
+            name="Visiteurs quotidiens",
+            line=dict(width=2, color="#66c2a5"),
+        )
     )
+
+    # Moyenne mobile
+    fig.add_trace(
+        go.Scatter(
+            x=df["date"],
+            y=df["prev_avg_4_visits"],
+            mode="lines+markers",
+            name="Moy. 4 visites précédentes",
+            line=dict(width=2, color="#fc8d62"),
+        )
+    )
+
+    # Variation en % sur axe secondaire
+    if "pct_chge" in df.columns:
+        fig.add_trace(
+            go.Bar(
+                x=df["date"],
+                y=df["pct_chge"],
+                name="Variation (%)",
+                marker_color="#8da0cb",
+                opacity=0.4,
+                yaxis="y2",
+            )
+        )
+
     fig.update_layout(
         title=f"Trafic journalier - {agency_n} (capteur {counter_i})",
         xaxis_title="Date",
-        yaxis_title="Visiteurs quotidiens",
+        yaxis=dict(title="Visiteurs quotidiens", side="left"),
+        yaxis2=dict(
+            title="Variation (%)",
+            overlaying="y",
+            side="right",
+            showgrid=False,
+            rangemode="tozero",
+        ),
         legend_title="Type de comptage",
         template="plotly_white",
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
+        height=600,
+        width=1100,
     )
-    fig.update_traces(line=dict(width=2))
     st.plotly_chart(fig, use_container_width=True)
 
 
