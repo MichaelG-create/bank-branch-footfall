@@ -8,7 +8,7 @@ import os
 import duckdb
 import pandas as pd
 
-from bank_footfall.api.data_app.agency import Agency
+from api.data_app.agency import Agency
 from data.data_base.init_agencies_db import create_agencies_db
 
 
