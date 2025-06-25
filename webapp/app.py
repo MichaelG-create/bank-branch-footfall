@@ -7,6 +7,8 @@ from datetime import date, datetime, timedelta
 
 import duckdb
 import pandas as pd
+import plotly.colors
+import plotly.graph_objects as go
 import streamlit as st
 
 
@@ -47,22 +49,71 @@ def get_sensor_chosen(agency_sensor_lst: list[tuple[str, int]], agency_n: str) -
     return sensor_chosen
 
 
+def get_multi_agency_data(agencies, counter_id, parquet_file, time_period):
+    dfs = []
+    for agency in agencies:
+        df = get_sensor_dataframe(agency, counter_id, parquet_file, time_period)
+        df["agency_name"] = agency
+        dfs.append(df)
+    if dfs:
+        return pd.concat(dfs, ignore_index=True)
+    else:
+        return pd.DataFrame()
+
+
+def get_agency_footfall_all_sensors(agencies, parquet_file, time_period):
+    dfs = []
+    for agency in agencies:
+        # Query all sensors for this agency and all columns
+        query = f"""
+            SELECT *
+            FROM {parquet_file}
+            WHERE agency_name = '{agency}'
+              AND date >= '{time_period[0]}'::DATE AND date <= '{time_period[1]}'::DATE
+        """
+        df = duckdb.sql(query).df()
+        if not df.empty:
+            # Group by date and aggregate
+            agg_df = (
+                df.groupby("date")
+                .agg(
+                    {
+                        "daily_visitor_count": "sum",
+                        "avg_visits_4_weekday": "sum",
+                        "prev_avg_4_visits": "sum",
+                        "pct_chge": "sum",  # wrong but temporary
+                    }
+                )
+                .reset_index()
+            )
+            # need to recalculate the total percentage change with all sensors as it's a ratio (not sumable)
+            agg_df["pct_chge"] = 100 * (
+                agg_df["daily_visitor_count"] / agg_df["prev_avg_4_visits"] - 1
+            )
+            agg_df["agency_name"] = agency
+            dfs.append(agg_df)
+    if dfs:
+        return pd.concat(dfs, ignore_index=True)
+    else:
+        return pd.DataFrame()
+
+
 # -------------------------------------------------------------------------------------------------
 # time selection
-
-
-def get_min_max_dates(agency_n: str, counter_i: int, parquet_file: str):
-    """returns min and max dates for current sensor"""
-    sensor_df = get_sensor_dataframe(agency_n, counter_i, parquet_file)
-    return min(sensor_df["date"]), max(sensor_df["date"])
 
 
 # Function to get start and end dates for a specific year
 def get_year_dates(year=datetime.today().year):
     """Retourne la date de début et de fin pour une année donnée."""
     start_date = datetime(year, 1, 1)
+    start_date = start_date.date()
     end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
-    return start_date.date(), end_date.date()
+    end_date = end_date.date()
+
+    st.success("Selected date range:")
+    st.success(f"{start_date} to {end_date}")
+
+    return start_date, end_date
 
 
 # Function to get start and end dates for a specific month
@@ -70,26 +121,29 @@ def get_month_dates(month_name, year=datetime.today().year):
     """get start_date and end_date from a month choice"""
     month_num = list(calendar.month_name).index(month_name)
     start_date = datetime(year, month_num, 1)
+    start_date = start_date.date()
+
     # Find the last day of the month
     if month_num == 12:  # December
         end_date = datetime(year + 1, 1, 1) - timedelta(days=1)
     else:
         end_date = datetime(year, month_num + 1, 1) - timedelta(days=1)
-    return start_date.date(), end_date.date()
+    end_date = end_date.date()
+
+    st.success("Selected date range:")
+    st.success(f"{start_date} to {end_date}")
+
+    return start_date, end_date
 
 
 # Function to get start and end dates for a specific week number
 def get_week_dates(week_number, year=datetime.today().year):
-    """get start_date and end_date from a week choice"""
-    # Get the first day of the year
-    first_day_of_year = datetime(year, 1, 1)
-    # Find the first Sunday of the year
-    first_sunday = first_day_of_year + timedelta(days=6 - first_day_of_year.weekday())
-    # Calculate the start date of the week
-    start_date = first_sunday + timedelta(weeks=week_number - 1)
-    # Calculate the end date (Saturday)
-    end_date = start_date + timedelta(days=6)
-    return start_date.date(), end_date.date()
+    """Return the start (Monday) and end (Sunday) dates for an ISO week number."""
+    start_date = date.fromisocalendar(year, week_number, 1)  # Monday
+    end_date = date.fromisocalendar(year, week_number, 7)  # Sunday
+    st.success("Selected date range:")
+    st.success(f"{start_date} to {end_date}")
+    return start_date, end_date
 
 
 def get_month_period() -> str:
@@ -118,20 +172,19 @@ def get_weeks_period() -> str:
     st.subheader("Select week")
     weeks = list(range(1, 53))  # Week numbers from 1 to 52
     week_w = st.selectbox("Select a full week:", weeks)
+
+    # st.success(f"Selected date range:")
+    # st.success(f"{start_date} to {end_date}")
+
     return week_w
 
 
-def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, date):
-    """from the agency and sensor name,
-    display a box to choose start_date and end_date
-    having a min and max dates taken from the df for this sensor
-    :returns: the min and max dates"""
+def get_time_period(year: int) -> tuple[date, date]:
+    """Display a box to choose start_date and end_date within the selected year."""
     st.subheader("Select Date Range")
+    min_date = date(year, 1, 1)
+    max_date = date(year, 12, 31)
 
-    # Define min and max date range
-    min_date, max_date = get_min_max_dates(agency_n, counter_i, parquet_file)
-
-    # Date range selection using calendar picker with min and max values
     start_date = st.date_input(
         "Start Date",
         value=min_date,
@@ -147,7 +200,6 @@ def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, 
         format="YYYY-MM-DD",
     )
 
-    # Ensure start date is before end date
     if start_date > end_date:
         st.error("Error: End date must be after start date.")
     else:
@@ -160,7 +212,10 @@ def get_time_period(agency_n: str, counter_i: int, parquet_file: str) -> (date, 
 
 
 def get_sensor_dataframe(
-    agency_n: str, counter_i: int, parquet_file: str, time_delta: (date, date) = None
+    agency_n: str,
+    counter_i: int,
+    parquet_file: str,
+    time_delta: tuple[date, date] = None,
 ) -> pd.DataFrame:
     """get sensor dataframe"""
     # pylint: disable=C0303
@@ -191,67 +246,183 @@ def display_sensor_dataframe(df: pd.DataFrame):
     st.dataframe(df)
 
 
-def display_daily_graph_for_sensor(agency_n: str, counter_i: int, df: pd.DataFrame):
-    """Displays a prettier history graph of the chosen sensor"""
-    import plotly.graph_objects as go
+def display_sensor_graph_with_checkboxes(
+    df: pd.DataFrame, agency_n: str, counter_i: int
+):
+    st.subheader("Variables à afficher")
+    show_daily = st.checkbox("Visiteurs quotidiens", value=True)
+    # show_avg_weekday = st.checkbox("Moy. 4 mêmes jours (avg_visits_4_weekday)", value=False)
+    show_prev_avg = st.checkbox("Moy. 4 mêmes jours précédents", value=False)
+    show_pct_chge = st.checkbox("Variation (%)", value=False)
 
     fig = go.Figure()
 
-    # print(f"df.dtypes  = {df.dtypes}")
-    # # print(df[['date', 'pct_chge']].head())
-
-    # Série principale : visiteurs quotidiens
-    fig.add_trace(
-        go.Scatter(
-            x=df["date"],
-            y=df["daily_visitor_count"],
-            mode="lines+markers",
-            name="Visiteurs quotidiens",
-            line=dict(width=2, color="#66c2a5"),
+    if show_daily and "daily_visitor_count" in df.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["daily_visitor_count"],
+                mode="lines+markers",
+                name="Visiteurs quotidiens",
+                line=dict(width=2, color="#1f77b4", dash="solid"),
+                marker=dict(symbol="circle"),
+            )
         )
-    )
 
-    # Moyenne mobile
-    fig.add_trace(
-        go.Scatter(
-            x=df["date"],
-            y=df["prev_avg_4_visits"],
-            mode="lines+markers",
-            name="Moy. 4 visites précédentes",
-            line=dict(width=2, color="#fc8d62"),
+    # if show_avg_weekday and "avg_visits_4_weekday" in df.columns:
+    #     fig.add_trace(go.Scatter(
+    #         x=df["date"], y=df["avg_visits_4_weekday"],
+    #         mode="lines",
+    #         # mode="lines+markers",
+    #         name="Moy. 4 mêmes jours",
+    #         line=dict(width=2, color="#ff7f0e", dash="dash"),
+    #         # marker=dict(symbol="diamond", size=10)
+    #     ))
+
+    if show_prev_avg and "prev_avg_4_visits" in df.columns:
+        fig.add_trace(
+            go.Scatter(
+                x=df["date"],
+                y=df["prev_avg_4_visits"],
+                mode="lines",
+                # mode="lines+markers",
+                name="Moy. 4 visites précédentes",
+                line=dict(width=2, color="#2ca02c", dash="dot"),
+                # marker=dict(symbol="square", size=10)
+            )
         )
-    )
 
-    # Variation en % sur axe secondaire
-    if "pct_chge" in df.columns:
+    if show_pct_chge and "pct_chge" in df.columns:
         fig.add_trace(
             go.Bar(
                 x=df["date"],
                 y=df["pct_chge"],
                 name="Variation (%)",
+                yaxis="y2",
                 marker_color="#8da0cb",
                 opacity=0.4,
-                yaxis="y2",
+            )
+        )
+        fig.update_layout(
+            yaxis2=dict(
+                title="Variation (%)", overlaying="y", side="right", showgrid=False
             )
         )
 
     fig.update_layout(
         title=f"Trafic journalier - {agency_n} (capteur {counter_i})",
         xaxis_title="Date",
-        yaxis=dict(title="Visiteurs quotidiens", side="left"),
-        yaxis2=dict(
-            title="Variation (%)",
-            overlaying="y",
-            side="right",
-            showgrid=False,
-            rangemode="tozero",
-        ),
-        legend_title="Type de comptage",
+        yaxis_title="Visiteurs quotidiens",
+        legend_title="Afficher/Masquer",
         template="plotly_white",
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
         height=600,
         width=1100,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def display_comparison_graph_with_checkboxes(df: pd.DataFrame, agencies: list):
+    st.subheader("Variables à afficher (pour toutes les agences)")
+    show_daily = st.checkbox("Visiteurs quotidiens", value=True)
+    # show_avg_weekday = st.checkbox("Moy. 4 mêmes jours (avg_visits_4_weekday)", value=False)
+    show_prev_avg = st.checkbox("Moy. 4 mêmes jours précédents", value=False)
+    show_pct_chge = st.checkbox("Variation (%)", value=False)
+
+    # Assign a unique color to each agency
+    palette = plotly.colors.qualitative.Set1
+    agency_colors = {
+        agency: palette[i % len(palette)] for i, agency in enumerate(agencies)
+    }
+
+    fig = go.Figure()
+
+    if df.empty:
+        st.warning("No data available for the selected agencies and time period.")
+        return
+
+    for agency in agencies:
+        df_ag = df[df["agency_name"] == agency]
+        color = agency_colors[agency]
+        if show_daily and "daily_visitor_count" in df_ag.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=df_ag["date"],
+                    y=df_ag["daily_visitor_count"],
+                    mode="lines+markers",
+                    name=f"{agency} - Visiteurs quotidiens",
+                    line=dict(width=2, dash="solid", color=color),
+                    marker=dict(symbol="circle", size=8, color=color),
+                )
+            )
+        # if show_avg_weekday and "avg_visits_4_weekday" in df_ag.columns:
+        #     fig.add_trace(go.Scatter(
+        #         x=df_ag["date"], y=df_ag["avg_visits_4_weekday"],
+        #         mode="lines",  # Only lines, no markers
+        #         name=f"{agency} - Moy. 4 mêmes jours",
+        #         line=dict(width=2, dash="dash", color=color)
+        #     ))
+        if show_prev_avg and "prev_avg_4_visits" in df_ag.columns:
+            fig.add_trace(
+                go.Scatter(
+                    x=df_ag["date"],
+                    y=df_ag["prev_avg_4_visits"],
+                    mode="lines",  # Only lines, no markers
+                    name=f"{agency} - Moy. 4 visites précédentes",
+                    line=dict(width=2, dash="dot", color=color),
+                )
+            )
+        if show_pct_chge and "pct_chge" in df_ag.columns:
+            fig.add_trace(
+                go.Bar(
+                    x=df_ag["date"],
+                    y=df_ag["pct_chge"],
+                    name=f"{agency} - Variation (%)",
+                    yaxis="y2",
+                    marker_color=color,
+                    opacity=0.4,
+                )
+            )
+            fig.update_layout(
+                yaxis2=dict(
+                    title="Variation (%)", overlaying="y", side="right", showgrid=False
+                )
+            )
+
+    fig.update_layout(
+        title="Comparaison du trafic journalier entre agences",
+        xaxis_title="Date",
+        yaxis_title="Valeur",
+        legend_title="Agence / Variable",
+        template="plotly_white",
+        hovermode="x unified",
+        margin=dict(l=40, r=40, t=60, b=40),
+        height=600,
+        width=1100,
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
+
+def display_average_bar_chart(df: pd.DataFrame):
+    import plotly.express as px
+
+    if df.empty:
+        st.warning("No data to display.")
+        return
+    avg_df = df.groupby("agency_name")["daily_visitor_count"].mean().reset_index()
+    fig = px.bar(
+        avg_df,
+        x="agency_name",
+        y="daily_visitor_count",
+        color="agency_name",
+        title="Average Daily Footfall per Agency",
+        labels={
+            "daily_visitor_count": "Average Daily Visitors",
+            "agency_name": "Agency",
+        },
+        height=400,
+        width=900,
     )
     st.plotly_chart(fig, use_container_width=True)
 
@@ -270,65 +441,154 @@ if __name__ == "__main__":
 
     agency_sensor_list = get_sensor_list(PARQUET_FILE)
 
-    with st.sidebar:
-        st.title("Sensor selection")
+# Streamlit app font configuration
+st.markdown(
+    """
+    <style>
+    /* Change color of selected chips in multiselect */
+    .stMultiSelect [data-baseweb="tag"] {
+        background-color: #f5a623 !important;
+        color: #fff !important;
+    }
+    /* Change the color of all checked checkboxes (the tick) */
+    input[type="checkbox"]:checked {
+        accent-color: #f5a623 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+# Streamlit app configuration
+with st.sidebar:
+    st.title("🏦 Bank Branch")
 
-        # Display a list of all sensors to be chosen
-        # find the corresponding sensor agency_name and counter_id
-        agency = get_agency_chosen(agency_sensor_list)
-        sensor = get_sensor_chosen(agency_sensor_list, agency)
-
-        # choose to see traffic weekly, monthly or in a defined window
-        st.title("Time period selection")
-        time_period_choice = st.selectbox(
-            "Choose a time selection method ",
-            [
-                "year",
-                "month",
-                "week",
-                "time period",
-            ],
+    with st.expander("Select branch", expanded=True):
+        # Agency selection
+        agency_names = sorted({row[0] for row in agency_sensor_list})
+        # selected_agencies = st.multiselect("Bank branches", agency_names, default=agency_names[:1])
+        selected_agencies = st.multiselect(
+            "", agency_names, default=agency_names[:1], label_visibility="collapsed"
         )
 
-        if time_period_choice == "time period":
-            time_period = get_time_period(agency, sensor, PARQUET_FILE)
-            st.write(f"Selected date range: {time_period[0]} to {time_period[1]}")
-
-        elif time_period_choice == "year":
-            # Optionally let user pick a year, or use current year
-            # current_year = datetime.today().year
-            current_year = 2024  # For testing purposes, set to a fixed year
-            year = st.number_input(
-                "Select year:",
-                min_value=2000,
-                max_value=current_year,
-                value=current_year,
-            )
-            time_period = get_year_dates(year)
-            st.write(
-                f"Selected year ({year}): "
-                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+        selected_sensor = None
+        if len(selected_agencies) == 1:
+            sensors = [
+                str(row[1])
+                for row in agency_sensor_list
+                if row[0] == selected_agencies[0]
+            ]
+            # selected_sensor = st.selectbox("Select a sensor (optional)", ["All sensors"] + sensors)
+            selected_sensor = st.selectbox(
+                "", ["All sensors"] + sensors, label_visibility="collapsed"
             )
 
-        elif time_period_choice == "month":
-            month = get_month_period()
-            time_period = get_month_dates(month, 2024)
-            st.write(
-                f"Selected month ({month}): "
-                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+    st.title("📅 Time range")
+    with st.expander("Select year(s)", expanded=True):
+        # Year selection
+        years = list(range(2000, datetime.today().year + 1))
+        # selected_years = st.multiselect("Select years:", years, default=[datetime.today().year])
+        default_year = 2024  # Default year to display
+        selected_years = st.multiselect(
+            "", years, default=[default_year], label_visibility="collapsed"
+        )
+
+        # --- Month selection box ---
+        with st.expander("Select months", expanded=False):
+            months = list(calendar.month_name)[1:]
+            if "selected_months" not in st.session_state:
+                st.session_state.selected_months = []
+            if "selected_weeks" not in st.session_state:
+                st.session_state.selected_weeks = []
+            if not st.session_state.selected_weeks:
+                selected_months = st.multiselect(
+                    "Months:", months, default=st.session_state.selected_months
+                )
+                if selected_months:
+                    st.session_state.selected_months = selected_months
+                    st.session_state.selected_weeks = []
+            else:
+                selected_months = []
+
+        # --- Week selection box ---
+        with st.expander("Or select week numbers", expanded=False):
+            week_numbers = list(range(1, 54))
+            if not st.session_state.selected_months:
+                selected_weeks = st.multiselect(
+                    "Week numbers:",
+                    week_numbers,
+                    default=st.session_state.selected_weeks,
+                )
+                if selected_weeks:
+                    st.session_state.selected_weeks = selected_weeks
+                    st.session_state.selected_months = []
+            else:
+                selected_weeks = []
+
+        # st.markdown("---")
+
+        # --- Date range selection box ---
+        with st.expander("Or use a custom date range", expanded=False):
+            min_year = min(selected_years) if selected_years else 2000
+            max_year = max(selected_years) if selected_years else datetime.today().year
+            min_date = date(min_year, 1, 1)
+            max_date = date(max_year, 12, 31)
+            start_date = st.date_input(
+                "Start Date",
+                value=min_date,
+                min_value=min_date,
+                max_value=max_date,
+                format="YYYY-MM-DD",
+            )
+            end_date = st.date_input(
+                "End Date",
+                value=max_date,
+                min_value=min_date,
+                max_value=max_date,
+                format="YYYY-MM-DD",
             )
 
-        elif time_period_choice == "week":
-            week = get_weeks_period()
-            time_period = get_week_dates(week, 2024)
-            st.write(
-                f"Selected full week ({week}): "
-                f"Start date = {time_period[0]}, End date = {time_period[1]}"
+# Data query logic
+if not selected_agencies:
+    st.info("Please select at least one agency to compare.")
+elif not selected_years:
+    st.info("Please select at least one year.")
+else:
+    if len(selected_agencies) == 1:
+        agency = selected_agencies[0]
+        if selected_sensor and selected_sensor != "All sensors":
+            df = get_sensor_dataframe(
+                agency, int(selected_sensor), PARQUET_FILE, (start_date, end_date)
             )
+            df["agency_name"] = agency
+            mode = "single_sensor"
+        else:
+            df = get_agency_footfall_all_sensors(
+                [agency], PARQUET_FILE, (start_date, end_date)
+            )
+            mode = "single_agency"
+    else:
+        df = get_agency_footfall_all_sensors(
+            selected_agencies, PARQUET_FILE, (start_date, end_date)
+        )
+        mode = "multi_agency"
 
-    data_f = get_sensor_dataframe(agency, sensor, PARQUET_FILE, time_period)
+    # Filtering
+    if not df.empty and "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])
+        df = df[
+            (df["date"] >= pd.to_datetime(start_date))
+            & (df["date"] <= pd.to_datetime(end_date))
+            & (df["date"].dt.year.isin(selected_years))
+        ]
+        if selected_months:
+            selected_month_nums = [
+                list(calendar.month_name).index(m) for m in selected_months
+            ]
+            df = df[df["date"].dt.month.isin(selected_month_nums)]
+        if selected_weeks:
+            df = df[df["date"].dt.isocalendar().week.isin(selected_weeks)]
 
-    # Add this before displaying graph/data
+    # Buttons to display graph XOR data
     if "show_data" not in st.session_state:
         st.session_state.show_data = False
 
@@ -340,7 +600,13 @@ if __name__ == "__main__":
         if st.button("Data"):
             st.session_state.show_data = True
 
-    if not st.session_state.show_data:
-        display_daily_graph_for_sensor(agency, sensor, data_f)
+    if df.empty:
+        st.warning("No data available for the selected agencies and time period.")
     else:
-        display_sensor_dataframe(data_f)
+        if not st.session_state.show_data:
+            if mode == "single_sensor":
+                display_sensor_graph_with_checkboxes(df, agency, int(selected_sensor))
+            else:
+                display_comparison_graph_with_checkboxes(df, selected_agencies)
+        else:
+            display_sensor_dataframe(df)

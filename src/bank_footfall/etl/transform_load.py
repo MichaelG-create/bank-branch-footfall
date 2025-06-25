@@ -297,14 +297,15 @@ class DataPipeline:
             final_data = existing_data.union(filtered_data).distinct()
             final_data = final_data.orderBy("agency_name", "counter_id", "date")
             print("Showing final data")
-            final_data.show(final_data.count(), truncate=False)
-            # final_data.show()
+            # final_data.show(final_data.count(), truncate=False)
+            final_data.show()
             # Write the filtered data in append mode
             (
                 final_data.write
                 # .partitionBy("agency_name", "counter_id", "date")
                 .mode("overwrite").parquet(output_path)
             )
+            print("Data written to existing parquet file in append mode.")
 
         else:
             # Write a new file if it doesn't exist
@@ -316,6 +317,7 @@ class DataPipeline:
                 )
                 # .schema(self.config_dict["parquet_schema"])
             )
+            print("Data written to new parquet file.")
 
 
 # ---------------------------------------------------------------------------------
