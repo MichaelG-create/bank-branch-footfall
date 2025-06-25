@@ -85,12 +85,23 @@ def get_this_date_agency_counter_count(
     """
     perform a single request to the API (one date_time, one agency, one counter)
     """
+    expected_columns = [
+        "date_time",
+        "agency_name",
+        "counter_id",
+        "visitor_count",
+        "unit",
+    ]
+
     try:
         date_str_web = date_tim.strftime("%Y-%m-%d %H:%M")
         # request api and obtain JSON response
         json_response = target_api.request_api(date_str_web, agency_nam, counter_id)
         # Load JSON data into a pandas DataFrame
-        return pd.DataFrame([json_response])
+        # Reindex to ensure correct columns and order, fill missing with None
+        df = pd.DataFrame([json_response])
+        df = df.reindex(columns=expected_columns)
+        return df
     except ValueError as e:
         logging.error(e)
         # print(json_response)
