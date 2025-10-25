@@ -1,0 +1,64 @@
+# cloudbuild.yaml
+steps:
+  # 1️⃣ Build API image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/api:latest'
+      - './api'
+  
+  # 2️⃣ Build ETL extract image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/etl_extract:latest'
+      - './etl_extract'
+
+  # 3️⃣ Build ETL transform/load image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/etl_transform_load:latest'
+      - './etl_transform_load'
+
+  # 4️⃣ Build Streamlit web app image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/web_app:latest'
+      - './web_app'
+
+  # 5️⃣ Build Airflow image
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/airflow:latest'
+      - './airflow'
+
+  # 6️⃣ Push all images to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/api:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/etl_extract:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/etl_transform_load:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/web_app:latest']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/airflow:latest']
+
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/api:latest'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/etl_extract:latest'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/etl_transform_load:latest'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/web_app:latest'
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/airflow:latest'
