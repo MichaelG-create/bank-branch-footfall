@@ -1,0 +1,59 @@
+{
+  "annotations": {
+    "list": []
+  },
+  "panels": [
+    {
+      "type": "graph",
+      "title": "API Requests Total",
+      "targets": [
+        {
+          "expr": "requests_total",
+          "legendFormat": "API Requests",
+          "refId": "A"
+        }
+      ],
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 0 }
+    },
+    {
+      "type": "graph",
+      "title": "API Request Duration (seconds)",
+      "targets": [
+        {
+          "expr": "request_processing_seconds_sum / request_processing_seconds_count",
+          "legendFormat": "Avg Duration",
+          "refId": "B"
+        }
+      ],
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 0 }
+    },
+    {
+      "type": "graph",
+      "title": "ETL Extract Runs",
+      "targets": [
+        {
+          "expr": "etl_extract_runs_total",
+          "legendFormat": "ETL Extract",
+          "refId": "C"
+        }
+      ],
+      "gridPos": { "h": 9, "w": 12, "x": 0, "y": 9 }
+    },
+    {
+      "type": "graph",
+      "title": "ETL Transform Runs",
+      "targets": [
+        {
+          "expr": "etl_transform_runs_total",
+          "legendFormat": "ETL Transform",
+          "refId": "D"
+        }
+      ],
+      "gridPos": { "h": 9, "w": 12, "x": 12, "y": 9 }
+    }
+  ],
+  "schemaVersion": 30,
+  "title": "Bank Branch Footfall Pipeline",
+  "version": 1,
+  "refresh": "15s"
+}
