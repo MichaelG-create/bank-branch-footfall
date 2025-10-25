@@ -1,14 +1,16 @@
 version: '3.8'
 
 services:
-  # Conteneur pour l'API FastAPI
+  #########################################################
+  # 🧩 API FastAPI — Génération de données simulées
+  #########################################################
   api:
     build:
       context: .
       dockerfile: Dockerfile.api
     volumes:
-      - ./api:/app/api  # for the api code (dev)
-      - ./data/data_base:/app/data/data_base  # for the agencies names and counters database
+      - ./api:/app/api
+      - ./data/data_base:/app/data/data_base
       - ./date_randomseed:/app/date_randomseed
       - pip_cache_api:/root/.cache/pip
     ports:
@@ -17,15 +19,23 @@ services:
     command: ["uvicorn", "api.app:app", "--host", "0.0.0.0", "--port", "8000"]
     networks:
       - banking_network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/health || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+      start_period: 5s
 
-  # Conteneur pour le script ETL extract.py
+  #########################################################
+  # 🧱 ETL Extract — Récupération des données depuis l'API
+  #########################################################
   etl_extract:
     build:
       context: .
       dockerfile: Dockerfile.etl_extract
     volumes:
-      - ./extract:/app/extract # for the api code (dev)
-      - ./data/data_base:/app/data/data_base  # for the agencies names and counters database
+      - ./extract:/app/extract
+      - ./data/data_base:/app/data/data_base
       - ./date_randomseed:/app/date_randomseed
       - ./data/raw:/app/data/raw
       - pip_cache_etl_extract:/root/.cache/pip
@@ -33,32 +43,35 @@ services:
     command: ["python3", "-m", "extract.extract"]
     networks:
       - banking_network
-#    depends_on:
-#      api:
-#        condition: service_healthy
+    depends_on:
+      api:
+        condition: service_healthy
 
-  # Conteneur pour le script ETL transform_load.py (PySpark)
+  #########################################################
+  # ⚙️ ETL Transform & Load — PySpark
+  #########################################################
   etl_transform_load:
     build:
       context: .
       dockerfile: Dockerfile.etl_transform_load
     volumes:
-      - ./transform_load:/app/transform_load  # for the script
-      - ./data/data_base:/app/data/data_base  # for the agencies names and counters database
+      - ./transform_load:/app/transform_load
+      - ./data/data_base:/app/data/data_base
       - ./data/raw:/app/data/raw
       - ./data/filtered:/app/data/filtered
       - pip_cache_etl_transform_load:/root/.cache/pip
       - apt_cache_etl_transform_load:/var/cache/apt
       - ./spark_cache:/opt/spark_cache
     working_dir: /app
-    command: [ "spark-submit", "transform_load/transform_load.py" ]
-#    command: ["sleep", "infinity"]
+    command: ["spark-submit", "transform_load/transform_load.py"]
     networks:
       - banking_network
-#    depends_on:
-#      - etl_extract    # not really depends on etl_extract, depends on CSV files extracted in volume data/raw
+    depends_on:
+      - etl_extract
 
-  # Conteneur pour l'app Streamlit
+  #########################################################
+  # 📊 Web App — Dashboard Streamlit
+  #########################################################
   web_app:
     build:
       context: .
@@ -71,8 +84,12 @@ services:
       - pip_cache_web_app:/root/.cache/pip
     networks:
       - banking_network
+    depends_on:
+      - etl_transform_load
 
-  # Conteneur pour Airflow
+  #########################################################
+  # 🪶 Airflow — Orchestration des pipelines
+  #########################################################
   airflow:
     build:
       context: .
@@ -91,7 +108,38 @@ services:
       - AIRFLOW__WEBSERVER__WORKERS=1
       - AIRFLOW__API__AUTH_BACKEND=airflow.api.auth.backend.basic_auth
 
+  #########################################################
+  # 📈 Prometheus — Scraping des métriques (API + ETL)
+  #########################################################
+  prometheus:
+    image: prom/prometheus
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    networks:
+      - banking_network
 
+  #########################################################
+  # 📊 Grafana — Dashboard pour le suivi du pipeline
+  #########################################################
+  grafana:
+    image: grafana/grafana
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - banking_network
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./monitoring/grafana:/var/lib/grafana
+
+#########################################################
+# 🧱 Volumes persistants
+#########################################################
 volumes:
   pip_cache_api:
   pip_cache_etl_extract:
@@ -100,8 +148,9 @@ volumes:
   pip_cache_web_app:
   pip_cache_airflow:
 
-
-
+#########################################################
+# 🌐 Réseau commun
+#########################################################
 networks:
   banking_network:
     driver: bridge
