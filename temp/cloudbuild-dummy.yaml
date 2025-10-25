@@ -1,0 +1,27 @@
+# steps:
+  # # Étape 1 : créer un fichier et le copier dans le bucket
+  # - name: 'gcr.io/cloud-builders/gsutil'
+  #   entrypoint: 'bash'
+  #   args:
+  #     - '-c'
+  #     - |
+  #       echo "Hello Cloud Build!" > hello.txt
+  #       echo "Uploading hello.txt to bucket ${_BUCKET}..."
+  #       gsutil cp hello.txt gs://${_BUCKET}/
+
+  # Étape 2 : simple build Docker (dummy)
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/dummy:latest', '.']
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/dummy:latest']
+
+images:
+  - 'gcr.io/$PROJECT_ID/dummy:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
+
+# substitutions:
+#   _BUCKET: 'default-bucket-name'  # sera remplacé via --substitutions
