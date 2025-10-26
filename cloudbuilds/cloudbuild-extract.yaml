@@ -1,0 +1,21 @@
+steps:
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'build',
+        '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-repo/extract:latest',
+        './etl/extract'
+      ]
+
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      [
+        'push',
+        'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-repo/extract:latest'
+      ]
+
+images:
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-repo/extract:latest'
+
+options:
+  logging: CLOUD_LOGGING_ONLY
