@@ -1,21 +1,15 @@
 steps:
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      [
-        'build',
-        '-t', 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-repo/api:latest',
-        './api'
-      ]
+      - 'build'
+      - '-t'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/api:latest'
+      - './api'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
-      [
-        'push',
-        'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-repo/api:latest'
-      ]
+      - 'push'
+      - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/api:latest'
 
 images:
-  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/docker-repo/api:latest'
-
-options:
-  logging: CLOUD_LOGGING_ONLY
+  - 'europe-west1-docker.pkg.dev/$PROJECT_ID/bank-branch-footfall/api:latest'
