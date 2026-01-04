@@ -3,10 +3,12 @@
 with possible errors to clean parquet"""
 
 import logging
+import sys
 import os
 import subprocess
 
 import duckdb
+
 from fuzzywuzzy import process
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
@@ -329,7 +331,8 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
         # Si elle n'existe pas, initialiser la base de données
         # If connection fails, initialize the database by running the init script
         logging.warning("Database not found at %s. Initializing database.", path)
-        subprocess.run(["python", "data/data_base/init_agencies_db.py"], check=True)
+        subprocess.run([sys.executable, "data/data_base/init_agencies_db.py"], check=True)
+
 
     conn = duckdb.connect(path)
 
@@ -355,7 +358,9 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 
 if __name__ == "__main__":
     logging.info("Running data_pipeline")
-    PROJECT_PATH = ""
+    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))  # bank_footfall/etl
+    PROJECT_ROOT = os.path.abspath(os.path.join(PROJECT_PATH, "..", ".."))
+
     DB_PATH = PROJECT_PATH + "data/data_base/agencies.duckdb"
     TABLE = "agencies"
 
@@ -401,11 +406,10 @@ if __name__ == "__main__":
     config = {
         "schema": schema,
         "parquet_schema": parquet_schema,
-        "file_path": PROJECT_PATH + "data/raw/*.csv",
-        "output_path": PROJECT_PATH + "data/filtered/parquet",
+        "file_path": os.path.join(PROJECT_ROOT, "data", "raw", "*.csv"),
+        "output_path": os.path.join(PROJECT_ROOT, "data", "filtered", "parquet"),
         "agency_names": agency_names,
     }
-
     pipeline = DataPipeline(spark, config)
     pipeline.run()
 

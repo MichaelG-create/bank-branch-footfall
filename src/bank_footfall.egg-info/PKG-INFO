@@ -1,3 +1,29 @@
+Metadata-Version: 2.4
+Name: bank-footfall
+Version: 0.1.0
+Summary: Data engineering project to track simulated footfall in banking agencies
+Author: Michael Garcia
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: pandas
+Requires-Dist: requests
+Requires-Dist: apache-airflow
+Requires-Dist: pyspark
+Requires-Dist: duckdb
+Requires-Dist: streamlit
+Requires-Dist: pyarrow
+Requires-Dist: pydantic>=2.0.0
+Requires-Dist: python-dotenv
+Requires-Dist: fuzzywuzzy>=0.18.0
+Requires-Dist: pydantic-settings>=2.11.0
+Requires-Dist: python-levenshtein>=0.27.1
+Provides-Extra: dev
+Requires-Dist: pytest; extra == "dev"
+Requires-Dist: ruff; extra == "dev"
+Requires-Dist: pre-commit; extra == "dev"
+
 # 🏦 **Bank Branch Footfall – Data Engineering Project**
 
 ## 🚀 **Présentation du projet**  
@@ -120,11 +146,11 @@ L’ancien script CLI (`extract_legacy.py`) est conservé pour référence, mais
 
 La phase **Transform & Load** utilise PySpark et nécessite Java.
 
-1. Installer un **JDK** (21 recommandé, ex. Temurin/OpenJDK).  
+1. Installer un **JDK** (8 ou 11 recommandé, ex. Temurin/OpenJDK).  
 2. Définir les variables d’environnement (Windows) :
 
 ```text
-JAVA_HOME = C:\Program Files\Java\jdk-21.0.x
+JAVA_HOME = C:\Program Files\Java\jdk-11.0.x
 Path += %JAVA_HOME%\bin
 ```
 
@@ -157,6 +183,19 @@ Cette étape :
 - Lit le CSV brut `data/raw/footfall_data.csv`.  
 - Nettoie et corrige les données (fuzzy matching avec `fuzzywuzzy`, Spark transformations).
 - Écrit les données transformées (Parquet / CSV) dans `data/filtered/` selon la config de `transform_load.py`.
+
+Note :  
+Un warning peut apparaître :
+
+```text
+Using slow pure-python SequenceMatcher. Install python-Levenshtein to remove this warning
+```
+
+Tu peux l’ignorer, ou accélérer `fuzzywuzzy` avec :
+
+```bash
+uv add python-Levenshtein
+```
 
 ### 7️⃣ Lancer Streamlit
 
