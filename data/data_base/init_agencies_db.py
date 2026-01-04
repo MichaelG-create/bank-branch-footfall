@@ -198,6 +198,6 @@ if __name__ == "__main__":
     DB_PATH = PROJECT_PATH + "data/data_base/agencies.duckdb"
     DB_TABLE = "agencies"
     create_agencies_db(
-        DB_PATH, DB_TABLE, agency_details
+        DB_PATH, DB_TABLE
     )  # agency_details defined up here
     logging.info(read_agency_db(DB_PATH, DB_TABLE))
