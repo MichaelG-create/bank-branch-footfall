@@ -8,8 +8,6 @@ import subprocess
 from enum import Enum
 
 import duckdb
-
-
 # ----------------------------------------------------------------
 #         Define sizes, location_type of agencies
 #         and according average traffic TRAFFIC_DATA
