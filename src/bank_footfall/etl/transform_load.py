@@ -4,10 +4,13 @@ with possible errors to clean parquet"""
 
 import logging
 import sys
+import sys
 import os
+from pathlib import Path
 import subprocess
 
 import duckdb
+
 
 from fuzzywuzzy import process
 from pyspark.sql import SparkSession, Window
@@ -333,6 +336,8 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
         logging.warning("Database not found at %s. Initializing database.", path)
         subprocess.run([sys.executable, "data/data_base/init_agencies_db.py"], check=True)
 
+        subprocess.run([sys.executable, "data/data_base/init_agencies_db.py"], check=True)
+
 
     conn = duckdb.connect(path)
 
@@ -358,10 +363,13 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
 
 if __name__ == "__main__":
     logging.info("Running data_pipeline")
-    PROJECT_PATH = os.path.dirname(os.path.abspath(__file__))  # bank_footfall/etl
-    PROJECT_ROOT = os.path.abspath(os.path.join(PROJECT_PATH, "..", ".."))
+    # __file__ = .../src/bank_footfall/etl/transform_load.py
+    # __file__ = .../src/bank_footfall/etl/transform_load.py
+    THIS_FILE = Path(__file__).resolve()
+    SRC_DIR = THIS_FILE.parents[2]        # .../src/bank_footfall
+    PROJECT_ROOT = SRC_DIR.parent         # .../bank-branch-footfall
 
-    DB_PATH = PROJECT_PATH + "data/data_base/agencies.duckdb"
+    DB_PATH = PROJECT_ROOT / "data" / "data_base" / "agencies.duckdb"    
     TABLE = "agencies"
 
     # Initialize SparkSession
@@ -403,10 +411,12 @@ if __name__ == "__main__":
     # Note: Adjust the file_path and output_path as needed
     # file_path = "data/raw/*.csv"
     # output_path = "data/filtered/parquet"
+    RAW_DIR = PROJECT_ROOT / "data" / "raw"
+
     config = {
         "schema": schema,
         "parquet_schema": parquet_schema,
-        "file_path": os.path.join(PROJECT_ROOT, "data", "raw", "*.csv"),
+        "file_path": str(RAW_DIR),  # no *.csv
         "output_path": os.path.join(PROJECT_ROOT, "data", "filtered", "parquet"),
         "agency_names": agency_names,
     }
