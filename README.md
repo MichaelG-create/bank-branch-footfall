@@ -11,7 +11,7 @@ Dans un contexte où l’optimisation des espaces et des effectifs est clé, ce 
 ✅ **Exploiter ces analyses dans d’autres secteurs** comme les commerces, musées ou transports.  
 
 ## 🏗️ **Architecture du projet**  
-![data-flow-diagram](data-flow-diagram.png)
+![data-flow-diagram](images/data-flow-diagram.png)
 
 ### 1️⃣ **API FastAPI** 🌐  
 [API live](https://bank-branch-footfall.onrender.com/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1)
