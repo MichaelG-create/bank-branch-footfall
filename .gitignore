@@ -98,3 +98,8 @@ mkdocs/
 Thumbs.db
 .tmp/
 *.tmp/
+
+# Coverage reports
+coverage.*
+.coverage
+htmlcov/
