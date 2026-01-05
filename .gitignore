@@ -1,16 +1,100 @@
-/.venv
-.idea
-*.duckdb
-*.parquet
-*.parquet.crc
-*_SUCCESS*
-airflow*.*
-webserver_config.py
-logs*
-Dockerfile
+# Environments
+/.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+.venv/
+.pixi/
+__pypackages__/
+
+# IDEs and Editors
+.idea/
+.vscode/
+.spyderproject
+.spyproject
+.ropeproject
+
+# Byte-compiled / Optimized Files
 __pycache__/
-*password*
-spark_cache
+*.py[cod]
+*$py.class
 *.pyc
 *.pyo
-.vscode/
+
+# C Extensions / Binaries
+*.so
+
+# Distribution / Packaging
+*.egg-info/
+build/
+dist/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+.installed.cfg
+.Python
+develop-eggs/
+downloads/
+.Python
+
+# Data Files (DuckDB, Parquet, Spark)
+*.duckdb*
+*.duckdb-wal
+*.duckdb-shm
+*.parquet*
+*.parquet.crc
+*_SUCCESS*
+spark_cache/
+
+# Logs and Configs
+logs*/
+*.log
+*password*
+airflow*.*
+webserver_config.py
+.env
+.env.local
+.pypirc
+
+# Testing / Coverage
+.pytest_cache/
+.tox/
+.nox/
+.coverage
+.coverage.*
+htmlcov/
+.nose/
+.hypothesis/
+.cache
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+.dmypy.json
+.pyre/
+
+# Jupyter / Notebooks
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Docker (for repo hygiene; use .dockerignore for builds)
+Dockerfile
+.dockerignore
+docker-compose*
+
+# Documentation Builds
+docs/_build/
+mkdocs/
+
+# OS / Temp
+.DS_Store
+Thumbs.db
+.tmp/
+*.tmp/
