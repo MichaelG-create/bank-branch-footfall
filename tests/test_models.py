@@ -5,7 +5,9 @@ from bank_footfall.models.footfall import Footfall
 
 
 def test_branch_model_basic():
-    branch = Branch(name="Main", address="123 Main St", city="Geneva", postal_code="1200")
+    branch = Branch(
+        name="Main", address="123 Main St", city="Geneva", postal_code="1200"
+    )
     assert branch.name == "Main"
     assert branch.city == "Geneva"
     assert branch.address == "123 Main St"

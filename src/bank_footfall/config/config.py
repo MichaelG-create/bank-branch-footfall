@@ -38,4 +38,5 @@ class Settings(BaseSettings):
     # Airflow
     airflow_home: Optional[str] = None
 
+
 settings = Settings()

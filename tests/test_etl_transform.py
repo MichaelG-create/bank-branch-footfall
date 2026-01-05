@@ -1,10 +1,6 @@
-from pathlib import Path
-import os
-
 import duckdb
-from pyspark.sql import SparkSession
-
 from bank_footfall.etl.transform_load import run_pipeline
+from pyspark.sql import SparkSession
 
 
 def test_run_pipeline_creates_parquet(tmp_path, monkeypatch):
@@ -38,9 +34,7 @@ def test_run_pipeline_creates_parquet(tmp_path, monkeypatch):
         con = duckdb.connect()
 
         # 1) Either use glob:
-        df = con.execute(
-            f"SELECT * FROM read_parquet('{output_dir}/*.parquet')"
-        ).df()
+        df = con.execute(f"SELECT * FROM read_parquet('{output_dir}/*.parquet')").df()
 
         # or, if Spark writes a single file, you can also:
         # df = con.execute(
