@@ -45,19 +45,19 @@ jobs:
 
     - name: Install dependencies
       run: |
-        run: uv sync --dev  # Simplified: --dev alone installs [dependency-groups.dev]
+        run: uv sync --dev
 
     - name: Run pre-commit hooks
       run: |
         uv run pre-commit run --all-files
 
     - name: Run tests
-      run: uv run pytest tests/ --cov=bank_footfall --cov-report=xml  # Added tests/ for discovery
+      run: uv run pytest tests/ --cov=bank_footfall --cov-report=xml
       env:
         DATABASE_URL: postgresql://testuser:testpass@localhost:5432/testdb
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4  # Latest stable
+      uses: codecov/codecov-action@v4  
       if: matrix.python-version == '3.11'
       with:
         file: ./coverage.xml
