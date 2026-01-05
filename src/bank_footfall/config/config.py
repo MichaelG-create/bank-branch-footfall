@@ -6,6 +6,12 @@ from typing import Optional
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# ---- Path helpers ----
+CONFIG_DIR = Path(__file__).resolve().parent  # .../src/bank_footfall/config
+PACKAGE_ROOT = CONFIG_DIR.parent  # .../src/bank_footfall
+SRC_ROOT = PACKAGE_ROOT.parent  # .../src
+PROJECT_ROOT = SRC_ROOT.parent  # .../bank-branch-footfall
+
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
@@ -17,12 +23,9 @@ class Settings(BaseSettings):
     )
 
     # Project paths
-    project_root: Path = Field(
-        default_factory=lambda: Path(__file__).parent.parent.parent
-    )
-    pythonpath: str = Field(
-        default_factory=lambda: str(Path(__file__).parent.parent.parent)
-    )
+    project_root: Path = Field(default=PROJECT_ROOT)  # real repo root
+    src_root: Path = Field(default=SRC_ROOT)  # .../src
+    pythonpath: str = Field(default=str(SRC_ROOT))  # for convenience
 
     # Database
     database_url: str = Field(default="sqlite:///./bank_footfall.db")
