@@ -11,14 +11,6 @@ from pydantic import BaseModel
 # Import de la config (gère automatiquement le PYTHONPATH)
 from bank_footfall.config import settings
 
-# # Import de votre module existant
-# try:
-#     from date_randomseed import get_date_random_seed
-# except ImportError:
-#     # Fallback si le module n'est pas trouvé
-#     sys.path.append(str(settings.project_root))
-
-
 # Configuration du logging
 logging.basicConfig(level=getattr(logging, settings.log_level))
 logger = logging.getLogger(__name__)
