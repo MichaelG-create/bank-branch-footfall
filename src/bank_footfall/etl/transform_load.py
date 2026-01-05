@@ -23,19 +23,24 @@ from pyspark.sql.types import (
     StructType,
 )
 
+word_list_broadcast = None  # type: ignore[assignment]
+
 
 def get_closest_match(word):
-    """Use fuzzywuzzy's process.extractOne to find the closest match"""
-    word_list = word_list_broadcast.value  # pylint: disable=E0606
+    """Use fuzzywuzzy's process.extractOne to find the closest match."""
+    # If the broadcast is not set, just return the original word (no correction)
+    if word_list_broadcast is None:
+        return word
+
+    word_list = word_list_broadcast.value
     closest_match = process.extractOne(word, word_list)
     return closest_match[0] if closest_match else None
-
 
 # Register the UDF
 get_closest_match_udf = udf(get_closest_match, StringType())
 
 
-# ---------------------------------------------------------------------------------
+
 class DataPipeline:
     """data pipeline to transform data from raw CSVs"""
 
@@ -322,7 +327,6 @@ class DataPipeline:
             print("Data written to new parquet file.")
 
 
-# ---------------------------------------------------------------------------------
 def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
     """load agency_names in a list from the db"""
     # Connect to the DuckDB database
@@ -354,30 +358,24 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
     return column_values
 
 
-# ---------------------------------------------------------------------------------
+def run_pipeline(project_root: Path, spark: SparkSession | None = None) -> None:
+    global word_list_broadcast
 
-# Example Usage (reads alls csvs in the data/raw folder and writes to data/filtered/parquet)
-# Note: Adjust the file_path and output_path as needed
-# file_path = "data/raw/*.csv"
-# output_path = "data/filtered/parquet"
+    close_spark = False
+    if spark is None:
+        spark = SparkSession.builder.appName(
+            "Agencies_Visitor_Count_Pipeline"
+        ).getOrCreate()
+        close_spark = True
 
-if __name__ == "__main__":
-    logging.info("Running data_pipeline")
-    # __file__ = .../src/bank_footfall/etl/transform_load.py
-    # __file__ = .../src/bank_footfall/etl/transform_load.py
-    THIS_FILE = Path(__file__).resolve()
-    SRC_DIR = THIS_FILE.parents[2]  # .../src/bank_footfall
-    PROJECT_ROOT = SRC_DIR.parent  # .../bank-branch-footfall
+    db_path = project_root / "data" / "data_base" / "agencies.duckdb"
+    table = "agencies"
 
-    DB_PATH = PROJECT_ROOT / "data" / "data_base" / "agencies.duckdb"
-    TABLE = "agencies"
+    agency_names = load_agency_name_list_from_db(db_path, table)
+    word_list_broadcast = spark.sparkContext.broadcast(agency_names)
+    
+    raw_dir = project_root / "data" / "raw"
 
-    # Initialize SparkSession
-    spark = SparkSession.builder.appName(
-        "Agencies_Visitor_Count_Pipeline"
-    ).getOrCreate()
-
-    # Define schema for the CSV columns
     schema = StructType(
         [
             StructField("date_time", StringType(), False),
@@ -388,7 +386,6 @@ if __name__ == "__main__":
         ]
     )
 
-    # Define schema for the parquet columns
     parquet_schema = StructType(
         [
             StructField("date", DateType(), True),
@@ -403,25 +400,30 @@ if __name__ == "__main__":
         ]
     )
 
-    agency_names = load_agency_name_list_from_db(DB_PATH, TABLE)
-    # Broadcast word_list to make it accessible in all nodes
-    word_list_broadcast = spark.sparkContext.broadcast(agency_names)
-
-    # Define the configuration for the pipeline
-    # Note: Adjust the file_path and output_path as needed
-    # file_path = "data/raw/*.csv"
-    # output_path = "data/filtered/parquet"
-    RAW_DIR = PROJECT_ROOT / "data" / "raw"
-
     config = {
         "schema": schema,
         "parquet_schema": parquet_schema,
-        "file_path": str(RAW_DIR),  # no *.csv
-        "output_path": os.path.join(PROJECT_ROOT, "data", "filtered", "parquet"),
+        "file_path": str(raw_dir),  # no *.csv
+        "output_path": os.path.join(project_root, "data", "filtered", "parquet"),
         "agency_names": agency_names,
     }
+
     pipeline = DataPipeline(spark, config)
     pipeline.run()
 
-    # Stop SparkSession
-    spark.stop()
+    if close_spark:
+        spark.stop()
+
+
+# Example Usage (reads alls csvs in the data/raw folder and writes to data/filtered/parquet)
+# Note: Adjust the file_path and output_path as needed
+# file_path = "data/raw/*.csv"
+# output_path = "data/filtered/parquet"
+
+if __name__ == "__main__":
+    logging.info("Running data_pipeline")
+    this_file = Path(__file__).resolve()
+    src_dir = this_file.parents[2]
+    project_root = src_dir.parent
+
+    run_pipeline(project_root)
