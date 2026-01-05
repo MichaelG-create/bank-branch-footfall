@@ -13,9 +13,6 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        python-version: ["3.11"]
 
     services:
       postgres:
@@ -39,17 +36,16 @@ jobs:
       uses: astral-sh/setup-uv@v2
       with:
         version: "latest"
+        enable-cache: true
 
-    - name: Set up Python ${{ matrix.python-version }}
-      run: uv python install ${{ matrix.python-version }}
+    - name: Set up Python
+      run: uv python install 3.11
 
     - name: Install dependencies
-      run: |
-        uv sync --dev
+      run: uv sync --dev
 
     - name: Run pre-commit hooks
-      run: |
-        uv run pre-commit run --all-files
+      run: uv run pre-commit run --all-files
 
     - name: Run tests
       run: uv run pytest tests/ --cov=bank_footfall --cov-report=xml
@@ -58,7 +54,6 @@ jobs:
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
-      if: matrix.python-version == '3.11'
       with:
         file: ./coverage.xml
 
@@ -113,20 +108,22 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
-    - uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
+      - name: Install uv
+        uses: astral-sh/setup-uv@v2
+        with:
+          version: "latest"
+          enable-cache: true
 
-    - name: Set up Python
-      run: uv python install 3.11
+      - name: Set up Python
+        run: uv python install 3.11
 
-    - name: Build package
-      run: |
-        uv build
+      - name: Build package
+        run: uv build
 
-    - name: Upload package artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: python-package
-        path: dist/
+      - name: Upload package artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: python-package
+          path: dist/

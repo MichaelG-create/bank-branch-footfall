@@ -1,12 +1,11 @@
 from pathlib import Path
-import requests
 from typing import Any, Dict
 
 import pandas as pd
 import pytest
-
+import requests
 from bank_footfall.etl import extract as extract_mod
-from bank_footfall.etl.extract import FootfallExtractor, FootfallAPIResponse
+from bank_footfall.etl.extract import FootfallAPIResponse, FootfallExtractor
 
 
 def test_api_response_validation():
@@ -151,7 +150,9 @@ def test_save_to_csv_raises_on_dataframe_failure(monkeypatch, tmp_path):
         extractor.save_to_csv(data, output_path)
 
 
-def test_main_uses_settings_and_calls_extractor(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+def test_main_uses_settings_and_calls_extractor(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
     # Redirect project_root so we do not touch the real repo
     monkeypatch.setattr(extract_mod.settings, "project_root", tmp_path)
 
@@ -161,7 +162,9 @@ def test_main_uses_settings_and_calls_extractor(monkeypatch: pytest.MonkeyPatch,
 
     called: Dict[str, Any] = {}
 
-    def fake_extract(date_time: str, agency_name: str, counter_id: int, count_unit: str):
+    def fake_extract(
+        date_time: str, agency_name: str, counter_id: int, count_unit: str
+    ):
         called["extract"] = {
             "date_time": date_time,
             "agency_name": agency_name,

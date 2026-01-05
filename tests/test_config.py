@@ -1,9 +1,6 @@
 from bank_footfall.config.config import Settings
 
 
-from bank_footfall.config.config import Settings
-
-
 def test_settings_defaults():
     settings = Settings()
 
@@ -12,8 +9,10 @@ def test_settings_defaults():
     # Accept either repo root or src dir to avoid overspecifying
     assert str(settings.project_root).endswith("bank-branch-footfall/src")
 
-    # Database
-    assert settings.database_url == "sqlite:///./bank_footfall.db"
+    # Database: expect Postgres URL (matches CI DATABASE_URL)
+    assert (
+        settings.database_url == "postgresql://testuser:testpass@localhost:5432/testdb"
+    )
 
     # API defaults
     assert settings.api_host == "127.0.0.1"

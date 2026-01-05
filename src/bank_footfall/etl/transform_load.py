@@ -36,9 +36,9 @@ def get_closest_match(word):
     closest_match = process.extractOne(word, word_list)
     return closest_match[0] if closest_match else None
 
+
 # Register the UDF
 get_closest_match_udf = udf(get_closest_match, StringType())
-
 
 
 class DataPipeline:
@@ -281,7 +281,7 @@ class DataPipeline:
         output_path = f'{self.config_dict["output_path"]}'
 
         if os.path.exists(output_path):
-            existing_data = spark.read.schema(  # pylint: disable=E0606
+            existing_data = self.spark.read.schema(
                 self.config_dict["parquet_schema"]
             ).parquet(output_path)
             print("Showing existing data")
@@ -373,7 +373,7 @@ def run_pipeline(project_root: Path, spark: SparkSession | None = None) -> None:
 
     agency_names = load_agency_name_list_from_db(db_path, table)
     word_list_broadcast = spark.sparkContext.broadcast(agency_names)
-    
+
     raw_dir = project_root / "data" / "raw"
 
     schema = StructType(
