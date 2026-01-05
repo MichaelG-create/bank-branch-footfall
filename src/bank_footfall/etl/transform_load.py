@@ -3,15 +3,12 @@
 with possible errors to clean parquet"""
 
 import logging
-import sys
-import sys
 import os
-from pathlib import Path
 import subprocess
+import sys
+from pathlib import Path
 
 import duckdb
-
-
 from fuzzywuzzy import process
 from pyspark.sql import SparkSession, Window
 from pyspark.sql import functions as F
@@ -334,10 +331,13 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
         # Si elle n'existe pas, initialiser la base de données
         # If connection fails, initialize the database by running the init script
         logging.warning("Database not found at %s. Initializing database.", path)
-        subprocess.run([sys.executable, "data/data_base/init_agencies_db.py"], check=True)
+        subprocess.run(
+            [sys.executable, "data/data_base/init_agencies_db.py"], check=True
+        )
 
-        subprocess.run([sys.executable, "data/data_base/init_agencies_db.py"], check=True)
-
+        subprocess.run(
+            [sys.executable, "data/data_base/init_agencies_db.py"], check=True
+        )
 
     conn = duckdb.connect(path)
 
@@ -366,10 +366,10 @@ if __name__ == "__main__":
     # __file__ = .../src/bank_footfall/etl/transform_load.py
     # __file__ = .../src/bank_footfall/etl/transform_load.py
     THIS_FILE = Path(__file__).resolve()
-    SRC_DIR = THIS_FILE.parents[2]        # .../src/bank_footfall
-    PROJECT_ROOT = SRC_DIR.parent         # .../bank-branch-footfall
+    SRC_DIR = THIS_FILE.parents[2]  # .../src/bank_footfall
+    PROJECT_ROOT = SRC_DIR.parent  # .../bank-branch-footfall
 
-    DB_PATH = PROJECT_ROOT / "data" / "data_base" / "agencies.duckdb"    
+    DB_PATH = PROJECT_ROOT / "data" / "data_base" / "agencies.duckdb"
     TABLE = "agencies"
 
     # Initialize SparkSession

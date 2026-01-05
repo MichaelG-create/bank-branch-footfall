@@ -1,48 +1,48 @@
 # 🏦 **Bank Branch Footfall – Data Engineering Project**
 
-## 🚀 **Présentation du projet**  
-Ce projet permet de suivre en temps réel l’affluence des visiteurs dans des agences bancaires grâce à un pipeline de données automatisé. L’objectif est d’analyser la fréquentation pour aider à l’optimisation des ressources et à la prise de décision.  
+## 🚀 **Présentation du projet**
+Ce projet permet de suivre en temps réel l’affluence des visiteurs dans des agences bancaires grâce à un pipeline de données automatisé. L’objectif est d’analyser la fréquentation pour aider à l’optimisation des ressources et à la prise de décision.
 
-## 🔍 **Pourquoi ce projet ?**  
-Dans un contexte où l’optimisation des espaces et des effectifs est clé, ce système permet de :  
-✅ **Anticiper les pics d’affluence** pour ajuster le personnel.  
-✅ **Optimiser les horaires d’ouverture** en fonction des flux réels.  
-✅ **Améliorer l’expérience client** en réduisant les temps d’attente.  
-✅ **Exploiter ces analyses dans d’autres secteurs** comme les commerces, musées ou transports.  
+## 🔍 **Pourquoi ce projet ?**
+Dans un contexte où l’optimisation des espaces et des effectifs est clé, ce système permet de :
+✅ **Anticiper les pics d’affluence** pour ajuster le personnel.
+✅ **Optimiser les horaires d’ouverture** en fonction des flux réels.
+✅ **Améliorer l’expérience client** en réduisant les temps d’attente.
+✅ **Exploiter ces analyses dans d’autres secteurs** comme les commerces, musées ou transports.
 
-## 🏗️ **Architecture du projet**  
+## 🏗️ **Architecture du projet**
 ![data-flow-diagram](data-flow-diagram.png)
 
-### 1️⃣ **API FastAPI** 🌐  
+### 1️⃣ **API FastAPI** 🌐
 [API live](https://bank-branch-footfall.onrender.com/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1)
 
-Une API REST générant des données sur le nombre de visiteurs entrant dans une agence bancaire par heure.  
+Une API REST générant des données sur le nombre de visiteurs entrant dans une agence bancaire par heure.
 
-### 2️⃣ **Pipeline ETL** 🔄  
-- **📥 Extraction** : Un script Python récupère les données via API et les stocke en CSV.  
-- **🛠️ Transformation avec Spark** : Nettoyage des données, agrégation et calcul de moyennes sur les jours précédents.  
-- **💾 Chargement** : Stockage des données transformées au format **Parquet** pour une exploitation rapide et optimisée.  
+### 2️⃣ **Pipeline ETL** 🔄
+- **📥 Extraction** : Un script Python récupère les données via API et les stocke en CSV.
+- **🛠️ Transformation avec Spark** : Nettoyage des données, agrégation et calcul de moyennes sur les jours précédents.
+- **💾 Chargement** : Stockage des données transformées au format **Parquet** pour une exploitation rapide et optimisée.
 
-### 3️⃣ **Orchestration avec Airflow** ⏳  
-- **📌 DAG principal** : Extraction et transformation toutes les heures.  
-- **🔄 DAG de backfill** : Recharge des données après une panne pour éviter toute perte.  
+### 3️⃣ **Orchestration avec Airflow** ⏳
+- **📌 DAG principal** : Extraction et transformation toutes les heures.
+- **🔄 DAG de backfill** : Recharge des données après une panne pour éviter toute perte.
 
-### 4️⃣ **Visualisation avec Streamlit** 📊  
+### 4️⃣ **Visualisation avec Streamlit** 📊
 [Application live](https://bank-branch-footfall.streamlit.app/)
 
-Une interface interactive où l’utilisateur peut sélectionner :  
-✔️ Une agence bancaire  
-✔️ Un détecteur spécifique  
-✔️ Une période pour visualiser les flux de visiteurs  
+Une interface interactive où l’utilisateur peut sélectionner :
+✔️ Une agence bancaire
+✔️ Un détecteur spécifique
+✔️ Une période pour visualiser les flux de visiteurs
 
-## 🛠 **Technologies utilisées**  
-🚀 **FastAPI** – API REST  
-🐍 **Python** – Extraction des données  
-⚡ **Apache Spark** – Traitement et transformation  
+## 🛠 **Technologies utilisées**
+🚀 **FastAPI** – API REST
+🐍 **Python** – Extraction des données
+⚡ **Apache Spark** – Traitement et transformation
 📦 **Parquet** – Stockage optimisé
-🦆 **DuckDB** – Chargement de Parquet vers DB   
-🛩 **Apache Airflow** – Orchestration du pipeline  
-📊 **Streamlit** – Visualisation interactive  
+🦆 **DuckDB** – Chargement de Parquet vers DB
+🛩 **Apache Airflow** – Orchestration du pipeline
+📊 **Streamlit** – Visualisation interactive
 
 Voici une version mise à jour de la section **Installation et utilisation** de ton README, alignée avec ta nouvelle archi `src/bank_footfall`, uv, FastAPI, l’extractor moderne et PySpark/Java.
 
@@ -82,7 +82,7 @@ Depuis la racine du projet :
 uv run uvicorn api.app:app --reload
 ```
 
-- Documentation interactive : http://127.0.0.1:8000/docs  
+- Documentation interactive : http://127.0.0.1:8000/docs
 - Endpoint principal :
 
 ```text
@@ -93,7 +93,7 @@ GET /get_visitor_count
   &count_unit=visitors
 ```
 
-Exemple local :  
+Exemple local :
 `http://127.0.0.1:8000/get_visitor_count?date_time=2025-05-29%2009:05&agency_name=Aix_les_bains_1&counter_id=0&count_unit=visitors`
 
 ### 4️⃣ Étape Extraction (ETL)
@@ -106,8 +106,8 @@ uv run python -m bank_footfall.etl.extract
 
 Cette commande :
 
-- Appelle l’API `/get_visitor_count` avec des paramètres configurés dans `extract.py`.  
-- Valide la réponse (Pydantic) et la met en forme.  
+- Appelle l’API `/get_visitor_count` avec des paramètres configurés dans `extract.py`.
+- Valide la réponse (Pydantic) et la met en forme.
 - Sauvegarde un CSV dans :
 
 ```text
@@ -120,7 +120,7 @@ L’ancien script CLI (`extract_legacy.py`) est conservé pour référence, mais
 
 La phase **Transform & Load** utilise PySpark et nécessite Java.
 
-1. Installer un **JDK** (21 recommandé, ex. Temurin/OpenJDK).  
+1. Installer un **JDK** (21 recommandé, ex. Temurin/OpenJDK).
 2. Définir les variables d’environnement (Windows) :
 
 ```text
@@ -154,7 +154,7 @@ uv run python -m bank_footfall.etl.transform_load
 
 Cette étape :
 
-- Lit le CSV brut `data/raw/footfall_data.csv`.  
+- Lit le CSV brut `data/raw/footfall_data.csv`.
 - Nettoie et corrige les données (fuzzy matching avec `fuzzywuzzy`, Spark transformations).
 - Écrit les données transformées (Parquet / CSV) dans `data/filtered/` selon la config de `transform_load.py`.
 
@@ -185,16 +185,16 @@ airflow standalone
 
 ***
 
-📍 Interface de visualisation des données en temps réel.  
+📍 Interface de visualisation des données en temps réel.
 
-## 🔮 **Perspectives et améliorations futures**  
-🔹 **Prise en compte des événements exceptionnels** (jours fériés, promotions, météo).  
-🔹 **Ajout d’un modèle de prédiction** pour anticiper les flux.  
-🔹 **Mise en place d’alertes et notifications** en cas d’affluence anormale.  
-🔹 **Création d'un dashboard avec Grafana** pour suivre l'état de santé du pipeline en temps réel.  
-🔹 **Conteneurisation** avec Docker pour un déploiement facilité du projet complet.  
-🔹 **Déploiement sur le cloud** vers GCP pour une scalabilité accrue.  
+## 🔮 **Perspectives et améliorations futures**
+🔹 **Prise en compte des événements exceptionnels** (jours fériés, promotions, météo).
+🔹 **Ajout d’un modèle de prédiction** pour anticiper les flux.
+🔹 **Mise en place d’alertes et notifications** en cas d’affluence anormale.
+🔹 **Création d'un dashboard avec Grafana** pour suivre l'état de santé du pipeline en temps réel.
+🔹 **Conteneurisation** avec Docker pour un déploiement facilité du projet complet.
+🔹 **Déploiement sur le cloud** vers GCP pour une scalabilité accrue.
 
 
-## 👤 **Auteur**  
+## 👤 **Auteur**
 Développé par Michael Garcia, passionné par la data engineering et l’automatisation des pipelines de données.

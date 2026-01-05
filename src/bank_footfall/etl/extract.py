@@ -6,7 +6,7 @@ from typing import Any, Dict, List
 
 import pandas as pd
 import requests
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 # Import de la config (gère automatiquement le PYTHONPATH)
 from bank_footfall.config import settings
@@ -50,7 +50,7 @@ class FootfallExtractor:
         try:
             url = f"{self.api_base_url}/get_visitor_count"
             params = {
-                "date_time": date_time,      # e.g. "2025-05-29 09:05"
+                "date_time": date_time,  # e.g. "2025-05-29 09:05"
                 "agency_name": agency_name,  # e.g. "Aix_les_bains_1"
                 "counter_id": counter_id,
                 "count_unit": count_unit,
@@ -75,7 +75,6 @@ class FootfallExtractor:
             logger.error("Data extraction failed: %s", e)
             raise
 
-
     def save_to_csv(self, data: List[Dict[str, Any]], output_path: Path) -> None:
         """Save extracted data to CSV."""
         try:
@@ -96,7 +95,9 @@ def main() -> None:
     counter_id = 0
     count_unit = "visitors"
 
-    records = extractor.extract_footfall_data(date_time, agency_name, counter_id, count_unit)
+    records = extractor.extract_footfall_data(
+        date_time, agency_name, counter_id, count_unit
+    )
 
     output_path = settings.project_root / "data" / "raw" / "footfall_data.csv"
     extractor.save_to_csv(records, output_path)

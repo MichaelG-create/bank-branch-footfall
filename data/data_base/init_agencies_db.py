@@ -3,11 +3,11 @@ module to initiate the database agencies
 """
 
 import logging
-import os
-import subprocess
 from enum import Enum
 
 import duckdb
+
+
 # ----------------------------------------------------------------
 #         Define sizes, location_type of agencies
 #         and according average traffic TRAFFIC_DATA
@@ -132,7 +132,7 @@ def create_agencies_db(path, table_name):
         num_counter = get_num_counter(agency_size, location_type)
         conn.execute(
             """
-    INSERT OR REPLACE INTO agencies 
+    INSERT OR REPLACE INTO agencies
     (agency_name, agency_size, location_type, base_traffic, counter_number)
     VALUES (?, ?, ?, ?, ?)
     """,
@@ -164,8 +164,8 @@ def read_agency_db(path, table_name):
     # Fetch all agency data from the table
     result = conn.execute(
         f"""
-        SELECT 
-            agency_name, 
+        SELECT
+            agency_name,
             agency_size,
             location_type,
             base_traffic,
@@ -197,7 +197,5 @@ if __name__ == "__main__":
     PROJECT_PATH = ""
     DB_PATH = PROJECT_PATH + "data/data_base/agencies.duckdb"
     DB_TABLE = "agencies"
-    create_agencies_db(
-        DB_PATH, DB_TABLE
-    )  # agency_details defined up here
+    create_agencies_db(DB_PATH, DB_TABLE)  # agency_details defined up here
     logging.info(read_agency_db(DB_PATH, DB_TABLE))
