@@ -8,13 +8,13 @@ version = "0.1.0"
 description = "Data engineering project to track simulated footfall in banking agencies"
 authors = [{ name = "Michael Garcia" }]
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10,<3.14"
 dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "pandas",
     "requests",
-    "apache-airflow",
+    "apache-airflow>=3.1.5",
     "pyspark",
     "duckdb",
     "streamlit",
@@ -24,6 +24,7 @@ dependencies = [
     "fuzzywuzzy>=0.18.0",
     "pydantic-settings>=2.11.0",
     "python-levenshtein>=0.27.1",
+    "sqlmodel>=0.0.21",
 ]
 
 [tool.setuptools.packages.find]

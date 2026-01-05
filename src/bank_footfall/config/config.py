@@ -1,5 +1,5 @@
 """Configuration management for the bank footfall application."""
-
+# src/bank_footfall/config/config.py
 from pathlib import Path
 from typing import Optional
 
@@ -10,7 +10,6 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
 
-    # Config for pydantic-settings v2
     model_config = SettingsConfigDict(
         env_file=".env",
         case_sensitive=False,
@@ -26,29 +25,17 @@ class Settings(BaseSettings):
     )
 
     # Database
-    database_url: str = Field(
-        default="sqlite:///./bank_footfall.db", env="DATABASE_URL"
-    )
+    database_url: str = Field(default="sqlite:///./bank_footfall.db")
 
     # API
-    api_host: str = Field(default="127.0.0.1", env="API_HOST")
-    api_port: int = Field(default=8000, env="API_PORT")
-    api_reload: bool = Field(default=True, env="API_RELOAD")
+    api_host: str = Field(default="127.0.0.1")
+    api_port: int = Field(default=8000)
+    api_reload: bool = Field(default=True)
 
     # Logging
-    log_level: str = Field(default="INFO", env="LOG_LEVEL")
+    log_level: str = Field(default="INFO")
 
     # Airflow
-    airflow_home: Optional[str] = Field(default=None, env="AIRFLOW_HOME")
-
-    def setup_python_path(self) -> None:
-        """Add project root to Python path."""
-        import sys
-
-        if str(self.project_root) not in sys.path:
-            sys.path.insert(0, str(self.project_root))
-
+    airflow_home: Optional[str] = None
 
 settings = Settings()
-settings.setup_python_path()
-
