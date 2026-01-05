@@ -4,11 +4,18 @@ from pathlib import Path
 from typing import Optional
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     """Application settings loaded from environment variables."""
+
+    # Config for pydantic-settings v2
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=False,
+        extra="allow",
+    )
 
     # Project paths
     project_root: Path = Field(
@@ -34,11 +41,6 @@ class Settings(BaseSettings):
     # Airflow
     airflow_home: Optional[str] = Field(default=None, env="AIRFLOW_HOME")
 
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
-        extra = "allow"
-
     def setup_python_path(self) -> None:
         """Add project root to Python path."""
         import sys
@@ -47,8 +49,6 @@ class Settings(BaseSettings):
             sys.path.insert(0, str(self.project_root))
 
 
-# Global settings instance
 settings = Settings()
-
-# Setup Python path automatically
 settings.setup_python_path()
+
