@@ -23,6 +23,8 @@ from pyspark.sql.types import (
     StructType,
 )
 
+from bank_footfall.config import settings
+
 word_list_broadcast = None  # type: ignore[assignment]
 
 
@@ -281,7 +283,7 @@ class DataPipeline:
         output_path = f'{self.config_dict["output_path"]}'
 
         if os.path.exists(output_path):
-            existing_data = self.spark.read.schema(
+            existing_data = self.spark_session.read.schema(
                 self.config_dict["parquet_schema"]
             ).parquet(output_path)
             print("Showing existing data")
@@ -327,7 +329,7 @@ class DataPipeline:
             print("Data written to new parquet file.")
 
 
-def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
+def load_agency_name_list_from_db(path: Path, table: str) -> list[str]:
     """load agency_names in a list from the db"""
     # Connect to the DuckDB database
     # Check if the database exists
@@ -335,10 +337,6 @@ def load_agency_name_list_from_db(path: str, table: str) -> list[str]:
         # Si elle n'existe pas, initialiser la base de données
         # If connection fails, initialize the database by running the init script
         logging.warning("Database not found at %s. Initializing database.", path)
-        subprocess.run(
-            [sys.executable, "data/data_base/init_agencies_db.py"], check=True
-        )
-
         subprocess.run(
             [sys.executable, "data/data_base/init_agencies_db.py"], check=True
         )
@@ -396,14 +394,14 @@ def run_pipeline(project_root: Path, spark: SparkSession | None = None) -> None:
             StructField("weekday", IntegerType(), True),
             StructField("avg_visits_4_weekday", DoubleType(), True),
             StructField("prev_avg_4_visits", DoubleType(), True),
-            StructField("pct_chge", DoubleType(), True),
+            StructField("pct_change", DoubleType(), True),
         ]
     )
 
     config = {
         "schema": schema,
         "parquet_schema": parquet_schema,
-        "file_path": str(raw_dir),  # no *.csv
+        "file_path": str(raw_dir / "*.csv"),
         "output_path": os.path.join(project_root, "data", "filtered", "parquet"),
         "agency_names": agency_names,
     }
@@ -422,8 +420,4 @@ def run_pipeline(project_root: Path, spark: SparkSession | None = None) -> None:
 
 if __name__ == "__main__":
     logging.info("Running data_pipeline")
-    this_file = Path(__file__).resolve()
-    src_dir = this_file.parents[2]
-    project_root = src_dir.parent
-
-    run_pipeline(project_root)
+    run_pipeline(settings.project_root)

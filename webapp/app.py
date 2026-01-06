@@ -81,13 +81,13 @@ def get_agency_footfall_all_sensors(agencies, parquet_file, time_period):
                         "daily_visitor_count": "sum",
                         "avg_visits_4_weekday": "sum",
                         "prev_avg_4_visits": "sum",
-                        "pct_chge": "sum",  # wrong but temporary
+                        "pct_change": "sum",  # wrong but temporary
                     }
                 )
                 .reset_index()
             )
             # need to recalculate the total percentage change with all sensors as it's a ratio (not sumable)
-            agg_df["pct_chge"] = 100 * (
+            agg_df["pct_change"] = 100 * (
                 agg_df["daily_visitor_count"] / agg_df["prev_avg_4_visits"] - 1
             )
             agg_df["agency_name"] = agency
@@ -253,7 +253,7 @@ def display_sensor_graph_with_checkboxes(
     show_daily = st.checkbox("Visiteurs quotidiens", value=True)
     # show_avg_weekday = st.checkbox("Moy. 4 mêmes jours (avg_visits_4_weekday)", value=False)
     show_prev_avg = st.checkbox("Moy. 4 mêmes jours précédents", value=False)
-    show_pct_chge = st.checkbox("Variation (%)", value=False)
+    show_pct_change = st.checkbox("Variation (%)", value=False)
 
     fig = go.Figure()
 
@@ -292,11 +292,11 @@ def display_sensor_graph_with_checkboxes(
             )
         )
 
-    if show_pct_chge and "pct_chge" in df.columns:
+    if show_pct_change and "pct_change" in df.columns:
         fig.add_trace(
             go.Bar(
                 x=df["date"],
-                y=df["pct_chge"],
+                y=df["pct_change"],
                 name="Variation (%)",
                 yaxis="y2",
                 marker_color="#8da0cb",
@@ -328,7 +328,7 @@ def display_comparison_graph_with_checkboxes(df: pd.DataFrame, agencies: list):
     show_daily = st.checkbox("Visiteurs quotidiens", value=True)
     # show_avg_weekday = st.checkbox("Moy. 4 mêmes jours (avg_visits_4_weekday)", value=False)
     show_prev_avg = st.checkbox("Moy. 4 mêmes jours précédents", value=False)
-    show_pct_chge = st.checkbox("Variation (%)", value=False)
+    show_pct_change = st.checkbox("Variation (%)", value=False)
 
     # Assign a unique color to each agency
     palette = plotly.colors.qualitative.Set1
@@ -373,11 +373,11 @@ def display_comparison_graph_with_checkboxes(df: pd.DataFrame, agencies: list):
                     line=dict(width=2, dash="dot", color=color),
                 )
             )
-        if show_pct_chge and "pct_chge" in df_ag.columns:
+        if show_pct_change and "pct_change" in df_ag.columns:
             fig.add_trace(
                 go.Bar(
                     x=df_ag["date"],
-                    y=df_ag["pct_chge"],
+                    y=df_ag["pct_change"],
                     name=f"{agency} - Variation (%)",
                     yaxis="y2",
                     marker_color=color,
