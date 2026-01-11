@@ -1,8 +1,11 @@
 from bank_footfall.config.config import Settings
 
 
-def test_settings_defaults():
+def test_settings_defaults(monkeypatch):
     """Default config without env vars: local dev SQLite + correct paths."""
+    # Ensure no DB env var interferes
+    for var in ["DATABASE_URL", "API_HOST", "API_PORT", "API_RELOAD", "LOG_LEVEL"]:
+        monkeypatch.delenv(var, raising=False)
     settings = Settings()
 
     # Project paths

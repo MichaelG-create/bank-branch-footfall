@@ -1,28 +1,25 @@
-import duckdb
-import pandas as pd
 from datetime import date
 
+import duckdb
 import pytest
+
 from webapp import app
 
 
 @pytest.fixture(scope="module")
 def duck_con():
     """In-memory DuckDB connection with a 'footfall' table."""
-    df = pd.DataFrame(
-        {
-            "agency_name": ["A", "A", "B"],
-            "counter_id": [1, 2, 1],
-            "date": pd.to_datetime(["2024-01-01", "2024-01-02", "2024-01-01"]),
-            "daily_visitor_count": [10, 20, 5],
-            "avg_visits_4_weekday": [8, 18, 4],
-            "prev_avg_4_visits": [5, 10, 2],
-            "pct_change": [100.0, 100.0, 150.0],
-        }
-    )
-
     con = duckdb.connect()
-    con.execute("CREATE TABLE footfall AS SELECT * FROM df")
+    con.execute(
+        """
+        CREATE TABLE footfall AS SELECT * FROM (VALUES
+            ('A', 1, '2024-01-01', 10, 8, 5, 100.0),
+            ('A', 2, '2024-01-02', 20, 18, 10, 100.0),
+            ('B', 1, '2024-01-01', 5, 4, 2, 150.0)
+        ) AS t(agency_name, counter_id, date, daily_visitor_count,
+               avg_visits_4_weekday, prev_avg_4_visits, pct_change)
+        """
+    )
     try:
         yield con
     finally:
@@ -32,6 +29,7 @@ def duck_con():
 def _patch_duckdb(monkeypatch: pytest.MonkeyPatch, con: duckdb.DuckDBPyConnection):
     def _sql(query: str):
         return con.execute(query)
+
     monkeypatch.setattr(duckdb, "sql", _sql)
 
 

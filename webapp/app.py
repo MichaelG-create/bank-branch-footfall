@@ -6,7 +6,8 @@ https://bank-branch-footfall.streamlit.app/
 
 import calendar
 import glob
-from datetime import date, datetime, timedelta
+import os
+from datetime import date, datetime
 
 import duckdb
 import pandas as pd
@@ -40,18 +41,19 @@ PLOTLY_TEMPLATE = "plotly_white"
 # "none" - no template
 
 # Professional Banking Theme Colors
-PRIMARY_COLOR = "#1C3F5E"      # Deep navy blue - trust, professionalism
-ACCENT_COLOR = "#D4AF37"       # Gold - premium, banking heritage
-SUCCESS_COLOR = "#2E7D32"      # Forest green - growth, positive metrics
-WARNING_COLOR = "#F57C00"      # Amber - attention needed
-DANGER_COLOR = "#C62828"       # Deep red - alerts, negative metrics
-TEXT_COLOR = "#2C3E50"         # Dark gray-blue for text
-BACKGROUND = "#F5F7FA"         # Soft gray-blue background
-CARD_BG = "#FFFFFF"            # White for cards/panels
+PRIMARY_COLOR = "#1C3F5E"  # Deep navy blue - trust, professionalism
+ACCENT_COLOR = "#D4AF37"  # Gold - premium, banking heritage
+SUCCESS_COLOR = "#2E7D32"  # Forest green - growth, positive metrics
+WARNING_COLOR = "#F57C00"  # Amber - attention needed
+DANGER_COLOR = "#C62828"  # Deep red - alerts, negative metrics
+TEXT_COLOR = "#2C3E50"  # Dark gray-blue for text
+BACKGROUND = "#F5F7FA"  # Soft gray-blue background
+CARD_BG = "#FFFFFF"  # White for cards/panels
 
 # --------------------------------------------------------------------------------------
 # Data helpers
 # --------------------------------------------------------------------------------------
+
 
 def get_sensor_list(parquet_file: str) -> list[tuple[str, int]]:
     """Read the parquet table and return list of (agency_name, counter_id)."""
@@ -78,8 +80,8 @@ def get_agency_footfall_all_sensors(
             SELECT *
             FROM {parquet_file}
             WHERE agency_name = '{agency}'
-              AND date >= '{time_period[0]}'::DATE
-              AND date <= '{time_period[1]}'::DATE
+              AND CAST(date AS DATE) >= '{time_period[0]}'::DATE
+              AND CAST(date AS DATE) <= '{time_period[1]}'::DATE
         """
         df = duckdb.sql(query).df()
         if df.empty:
@@ -114,7 +116,6 @@ def get_sensor_dataframe(
     parquet_file: str,
     time_delta: tuple[date, date] | None = None,
 ) -> pd.DataFrame:
-    """Return dataframe for a given agency and sensor, optionally filtered by date range."""
     if time_delta is None:
         query = f"""
             SELECT *
@@ -129,17 +130,21 @@ def get_sensor_dataframe(
             FROM {parquet_file}
             WHERE agency_name = '{agency_n}'
               AND counter_id = {counter_i}
-              AND date >= '{time_delta[0]}'::DATE
-              AND date <= '{time_delta[1]}'::DATE
+              AND CAST(date AS DATE) >= '{time_delta[0]}'::DATE
+              AND CAST(date AS DATE) <= '{time_delta[1]}'::DATE
             ORDER BY agency_name, counter_id, date;
         """
 
-    return duckdb.sql(query).df()
+    df = duckdb.sql(query).df()
+    if "date" in df.columns:
+        df["date"] = pd.to_datetime(df["date"])  # ensure datetime64
+    return df
 
 
 # --------------------------------------------------------------------------------------
 # Display helpers
 # --------------------------------------------------------------------------------------
+
 
 def display_sensor_dataframe(df: pd.DataFrame) -> None:
     """Display the dataframe of the selected sensor / agencies."""
@@ -147,7 +152,9 @@ def display_sensor_dataframe(df: pd.DataFrame) -> None:
 
 
 def display_sensor_graph_with_checkboxes(
-    df: pd.DataFrame, agency_n: str, counter_i: int
+    df: pd.DataFrame,
+    agency_n: str,
+    counter_i: int,  # Explicit types
 ) -> None:
     """Display a graph for a single sensor with toggleable series."""
     st.subheader("Variables à afficher")
@@ -232,7 +239,8 @@ def display_comparison_graph_with_checkboxes(
     # Modern color palette
     color_palette = ["#2E86AB", "#A23B72", "#F18F01", "#C73E1D", "#6A994E", "#BC4B51"]
     agency_colors = {
-        agency: color_palette[i % len(color_palette)] for i, agency in enumerate(agencies)
+        agency: color_palette[i % len(color_palette)]
+        for i, agency in enumerate(agencies)
     }
 
     fig = go.Figure()
@@ -249,8 +257,8 @@ def display_comparison_graph_with_checkboxes(
                     mode="lines",
                     name=f"{agency} - Visiteurs quotidiens",
                     line=dict(
-                        color=color, 
-                        width=3, 
+                        color=color,
+                        width=3,
                         dash="solid",
                         shape="spline",
                     ),
@@ -334,7 +342,13 @@ def display_average_bar_chart(df: pd.DataFrame) -> None:
         },
         height=400,
         template=PLOTLY_TEMPLATE,
-        color_discrete_sequence=[PRIMARY_COLOR, "#2E5C7F", "#4A7BA7", ACCENT_COLOR, "#8B7355"],
+        color_discrete_sequence=[
+            PRIMARY_COLOR,
+            "#2E5C7F",
+            "#4A7BA7",
+            ACCENT_COLOR,
+            "#8B7355",
+        ],
     )
     fig.update_layout(font=dict(color=TEXT_COLOR))
     st.plotly_chart(fig, use_container_width=True)
@@ -346,13 +360,36 @@ def display_average_bar_chart(df: pd.DataFrame) -> None:
 
 PROJECT_PATH = ""
 FOLDER_PATH = PROJECT_PATH + "data/filtered/parquet/"
-parquet_files = glob.glob(FOLDER_PATH + "*.parquet")
-if not parquet_files:
+
+
+def find_parquet_file() -> str | None:
+    """Return a quoted parquet file path.
+
+    - In normal Streamlit runs: require a file and stop app if missing.
+    - In pytest: allow missing files and return a dummy name.
+    """
+    parquet_files = glob.glob(FOLDER_PATH + "*.parquet")
+    if parquet_files:
+        return f"'{parquet_files[0]}'"
+
+    # Running under pytest? Be lenient so tests can monkeypatch duckdb.
+    if os.environ.get("PYTEST_CURRENT_TEST"):
+        # Tests pass explicit table name like "footfall" to helpers,
+        # so app-level PARQUET_FILE is irrelevant there.
+        return None  # or "'footfall'" if you prefer a concrete string
+
+    # Real app run with no data: show error and stop.
     st.error("No parquet files found in data/filtered/parquet/.")
     st.stop()
+    return None
 
-PARQUET_FILE = f"'{parquet_files[0]}'"
-agency_sensor_list = get_sensor_list(PARQUET_FILE)
+
+PARQUET_FILE = find_parquet_file()
+if PARQUET_FILE is None:
+    # In pytest, PARQUET_FILE is unused; in app mode we already stopped.
+    agency_sensor_list = []
+else:
+    agency_sensor_list = get_sensor_list(PARQUET_FILE)
 
 
 # --------------------------------------------------------------------------------------
@@ -366,13 +403,13 @@ st.markdown(
     .stApp {
         background-color: #F5F7FA;
     }
-    
+
     /* Sidebar styling - white with subtle border */
     [data-testid="stSidebar"] {
         background-color: #FFFFFF;
         border-right: 2px solid #E1E8ED;
     }
-    
+
     /* Multiselect chips - deep navy blue (banking professional) */
     .stMultiSelect [data-baseweb="tag"] {
         background-color: #1C3F5E !important;
@@ -380,12 +417,12 @@ st.markdown(
         border-radius: 6px !important;
         font-weight: 500 !important;
     }
-    
+
     /* Checkbox accent color - deep navy */
     input[type="checkbox"]:checked {
         accent-color: #1C3F5E !important;
     }
-    
+
     /* Button styling - professional navy with gold hover */
     .stButton button {
         background-color: #1C3F5E;
@@ -398,7 +435,7 @@ st.markdown(
         transition: all 0.3s ease;
         letter-spacing: 0.5px;
     }
-    
+
     .stButton button:hover {
         background-color: #D4AF37;
         border-color: #D4AF37;
@@ -406,7 +443,7 @@ st.markdown(
         box-shadow: 0 4px 12px rgba(212, 175, 55, 0.3);
         transform: translateY(-2px);
     }
-    
+
     /* Expander styling - professional gray */
     .streamlit-expanderHeader {
         background-color: #F8F9FA;
@@ -415,24 +452,24 @@ st.markdown(
         color: #2C3E50;
         border: 1px solid #E1E8ED;
     }
-    
+
     .streamlit-expanderHeader:hover {
         background-color: #E8EDF2;
     }
-    
+
     /* Dataframe styling */
     .stDataFrame {
         border-radius: 10px;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     }
-    
+
     /* Headers - professional dark blue-gray */
     h1, h2, h3 {
         color: #2C3E50;
         font-weight: 700;
     }
-    
+
     /* Sidebar title - navy with gold accent */
     [data-testid="stSidebar"] h1 {
         color: #1C3F5E;
@@ -440,19 +477,19 @@ st.markdown(
         padding-bottom: 0.5rem;
         margin-bottom: 1.5rem;
     }
-    
+
     /* Metrics and info boxes */
     [data-testid="stMetricValue"] {
         color: #1C3F5E;
         font-weight: 700;
     }
-    
+
     /* Warning/Info boxes with banking colors */
     .stAlert {
         border-radius: 8px;
         border-left: 4px solid #1C3F5E;
     }
-    
+
     /* Selectbox and input styling */
     .stSelectbox > div > div,
     .stMultiSelect > div > div,
@@ -460,23 +497,23 @@ st.markdown(
         border-radius: 8px;
         border-color: #D1D5DB;
     }
-    
+
     /* Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 8px;
     }
-    
+
     .stTabs [data-baseweb="tab"] {
         border-radius: 8px 8px 0 0;
         color: #2C3E50;
         font-weight: 600;
     }
-    
+
     .stTabs [aria-selected="true"] {
         background-color: #1C3F5E;
         color: white;
     }
-    
+
     /* Subtle shadow for main content cards */
     .main .block-container {
         padding: 2rem;
@@ -591,61 +628,116 @@ if not selected_agencies:
 elif not selected_years:
     st.info("Please select at least one year.")
 else:
+    # Data loading inside mode branches for scope safety
     if len(selected_agencies) == 1:
         agency = selected_agencies[0]
+
         if selected_sensor and selected_sensor != "All sensors":
+            sensor_id = int(selected_sensor)
             df = get_sensor_dataframe(
-                agency, int(selected_sensor), PARQUET_FILE, (start_date, end_date)
+                agency, sensor_id, PARQUET_FILE, (start_date, end_date)
             )
             df["agency_name"] = agency
-            mode = "single_sensor"
         else:
             df = get_agency_footfall_all_sensors(
                 [agency], PARQUET_FILE, (start_date, end_date)
             )
-            mode = "single_agency"
+            sensor_id = 0  # "All sensors" fallback for display
+
+        # Filter immediately after loading (agency/sensor_id in scope)
+        if not df.empty and "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"])
+            mask = (
+                (df["date"] >= pd.to_datetime(start_date))
+                & (df["date"] <= pd.to_datetime(end_date))
+                & (df["date"].dt.year.isin(selected_years))  # type: ignore[reportAttributeAccessIssue]
+            )
+            df = df[mask].copy()
+
+            if (
+                "selected_months" in st.session_state
+                and st.session_state.selected_months
+            ):
+                selected_month_nums = [
+                    list(calendar.month_name).index(m)
+                    for m in st.session_state.selected_months
+                ]
+                df = df[df["date"].dt.month.isin(selected_month_nums)]
+
+            if "selected_weeks" in st.session_state and st.session_state.selected_weeks:
+                df = df[
+                    df["date"]
+                    .dt.isocalendar()["week"]
+                    .isin(st.session_state.selected_weeks)
+                ]
+
+        # Display for single agency (agency/sensor_id guaranteed defined)
+        if "show_data" not in st.session_state:
+            st.session_state.show_data = False
+
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("📊 Graph"):
+                st.session_state.show_data = False
+        with col2:
+            if st.button("📋 Data"):
+                st.session_state.show_data = True
+
+        if df.empty:
+            st.warning("No data available for the selected agencies and time period.")
+        else:
+            if not st.session_state.show_data:
+                display_sensor_graph_with_checkboxes(df, agency, sensor_id)
+            else:
+                display_sensor_dataframe(df)
+
     else:
+        # Multi-agency path
         df = get_agency_footfall_all_sensors(
             selected_agencies, PARQUET_FILE, (start_date, end_date)
         )
-        mode = "multi_agency"
 
-    if not df.empty and "date" in df.columns:
-        df["date"] = pd.to_datetime(df["date"])
-        df = df[
-            (df["date"] >= pd.to_datetime(start_date))
-            & (df["date"] <= pd.to_datetime(end_date))
-            & (df["date"].dt.year.isin(selected_years))
-        ]
+        if not df.empty and "date" in df.columns:
+            df["date"] = pd.to_datetime(df["date"])
+            mask = (
+                (df["date"] >= pd.to_datetime(start_date))
+                & (df["date"] <= pd.to_datetime(end_date))
+                & (df["date"].dt.year.isin(selected_years))  # type: ignore[reportAttributeAccessIssue]
+            )
+            df = df[mask].copy()
 
-        if "selected_months" in st.session_state and st.session_state.selected_months:
-            selected_month_nums = [
-                list(calendar.month_name).index(m)
-                for m in st.session_state.selected_months
-            ]
-            df = df[df["date"].dt.month.isin(selected_month_nums)]
+            if (
+                "selected_months" in st.session_state
+                and st.session_state.selected_months
+            ):
+                selected_month_nums = [
+                    list(calendar.month_name).index(m)
+                    for m in st.session_state.selected_months
+                ]
+                df = df[df["date"].dt.month.isin(selected_month_nums)]
 
-        if "selected_weeks" in st.session_state and st.session_state.selected_weeks:
-            df = df[df["date"].dt.isocalendar().week.isin(st.session_state.selected_weeks)]
+            if "selected_weeks" in st.session_state and st.session_state.selected_weeks:
+                df = df[
+                    df["date"]
+                    .dt.isocalendar()["week"]
+                    .isin(st.session_state.selected_weeks)
+                ]
 
-    if "show_data" not in st.session_state:
-        st.session_state.show_data = False
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        if st.button("📊 Graph"):
+        if "show_data" not in st.session_state:
             st.session_state.show_data = False
-    with col2:
-        if st.button("📋 Data"):
-            st.session_state.show_data = True
 
-    if df.empty:
-        st.warning("No data available for the selected agencies and time period.")
-    else:
-        if not st.session_state.show_data:
-            if mode == "single_sensor":
-                display_sensor_graph_with_checkboxes(df, agency, int(selected_sensor))
-            else:
-                display_comparison_graph_with_checkboxes(df, selected_agencies)
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            if st.button("📊 Graph"):
+                st.session_state.show_data = False
+        with col2:
+            if st.button("📋 Data"):
+                st.session_state.show_data = True
+
+        if df.empty:
+            st.warning("No data available for the selected agencies and time period.")
         else:
-            display_sensor_dataframe(df)
+            if not st.session_state.show_data:
+                display_comparison_graph_with_checkboxes(df, selected_agencies)
+            else:
+                display_sensor_dataframe(df)
