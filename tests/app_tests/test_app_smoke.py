@@ -1,10 +1,10 @@
 # tests/app_tests/test_app_smoke.py
 from pathlib import Path
+
 from streamlit.testing.v1 import AppTest
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 APP_PATH = PROJECT_ROOT / "webapp" / "app.py"
-
 
 
 def test_app_smoke_runs():

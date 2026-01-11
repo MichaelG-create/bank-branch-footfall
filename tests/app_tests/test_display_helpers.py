@@ -1,9 +1,9 @@
-import pandas as pd
 from datetime import date
 from unittest.mock import MagicMock, patch
 
-from webapp import app
+import pandas as pd
 
+from webapp import app
 
 
 def _sample_df():
