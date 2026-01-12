@@ -39,7 +39,7 @@ jobs:
         enable-cache: true
 
     - name: Set up Python
-      run: uv python install 3.11
+      run: uv python install 3.12
 
     - name: Install dependencies
       run: uv sync --dev
@@ -56,6 +56,11 @@ jobs:
       uses: codecov/codecov-action@v4
       with:
         file: ./coverage.xml
+
+    - name: Notify successful deployment
+      if: success()
+      run: echo "✅ Deployed to main!"
+
 
   build-and-push:
     needs: test
