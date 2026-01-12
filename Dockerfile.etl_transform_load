@@ -47,4 +47,3 @@ RUN pip install -r requirements-etl_transform_load.txt --cache-dir=/root/.cache/
 # CMD ["spark-submit", "transform_load/transform_load.py"]
 # CMD ["bash"]
 # CMD ["sleep", "infinity"]
-

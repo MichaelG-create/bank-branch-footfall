@@ -40,9 +40,9 @@ async def get_visitor_count(
     This road gives back the visitor count for
     - a certain date_time
     - a certain agency_name
-    - a certain counter_id (if omitted, then all traffic given)
+    - a certain counter_id (if omitted or equal to -1, then all traffic given)
     - with a unit to count the visitors
-    :param date_time: string with format 'YYYY-MM-DD_HH:MM'
+    :param date_time: string with format 'YYYY-MM-DD HH:MM'
     :param agency_name: string with format 'agency_name'
     :param counter_id: int
     :param count_unit: str

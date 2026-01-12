@@ -9,7 +9,7 @@ COPY api/requirements-api.txt .
 RUN pip install -r requirements-api.txt --cache-dir=/root/.cache/pip
 
 # sub-modules imports needs this architecture for the api code (dev)
-COPY api/ /app/api/ 
+COPY api/ /app/api/
 
 # date_randomseed sub module
 COPY date_randomseed/ /app/date_randomseed/
