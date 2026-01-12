@@ -161,7 +161,7 @@ def display_sensor_graph_with_checkboxes(
     """Display a graph for a single sensor with toggleable series and threshold bands."""
     st.subheader("Variables to display")
     show_daily = st.checkbox("Daily visitors", value=True)
-    show_prev_avg = st.checkbox("Avg. 4 previous same days", value=False)
+    show_prev_avg = st.checkbox("Avg. 4 similar previous days", value=False)
     show_pct_change = st.checkbox("Variation (%)", value=False)
 
     # Threshold band toggles
@@ -178,9 +178,19 @@ def display_sensor_graph_with_checkboxes(
         show_upper_threshold = False
         show_lower_threshold = False
 
-    fig = go.Figure()
+    # Create subplots: main chart + variation chart below
+    from plotly.subplots import make_subplots
 
-    # Daily visitor count
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.12,
+        row_heights=[0.7, 0.3],  # main chart 70%, variation 30%
+        specs=[[{"secondary_y": False}], [{"secondary_y": False}]],
+    )
+
+    # Row 1: Daily visitor count + thresholds
     if show_daily and "daily_visitor_count" in df.columns:
         fig.add_trace(
             go.Scatter(
@@ -190,7 +200,9 @@ def display_sensor_graph_with_checkboxes(
                 name="Daily visitors",
                 line=dict(width=3, shape="spline", color=PRIMARY_COLOR),
                 marker=dict(size=6, color=PRIMARY_COLOR),
-            )
+            ),
+            row=1,
+            col=1,
         )
 
         # Threshold band visualization
@@ -213,7 +225,9 @@ def display_sensor_graph_with_checkboxes(
                         name=f"Upper threshold (+{rel_threshold_pct}%)",
                         line=dict(width=2, dash="dot", color=WARNING_COLOR),
                         opacity=0.6,
-                    )
+                    ),
+                    row=1,
+                    col=1,
                 )
 
                 # Yellow markers when above upper threshold
@@ -230,7 +244,9 @@ def display_sensor_graph_with_checkboxes(
                             name="⚠️ Above threshold",
                             marker=dict(size=10, color="#FFD700", symbol="diamond"),
                             showlegend=True,
-                        )
+                        ),
+                        row=1,
+                        col=1,
                     )
 
             # Lower threshold line
@@ -243,7 +259,9 @@ def display_sensor_graph_with_checkboxes(
                         name=f"Lower threshold (-{rel_threshold_pct}%)",
                         line=dict(width=2, dash="dot", color=WARNING_COLOR),
                         opacity=0.6,
-                    )
+                    ),
+                    row=1,
+                    col=1,
                 )
 
                 # Yellow markers when below lower threshold
@@ -260,7 +278,9 @@ def display_sensor_graph_with_checkboxes(
                             name="⚠️ Below threshold",
                             marker=dict(size=10, color="#FFD700", symbol="diamond"),
                             showlegend=True,
-                        )
+                        ),
+                        row=1,
+                        col=1,
                     )
 
     if show_prev_avg and "prev_avg_4_visits" in df.columns:
@@ -271,9 +291,12 @@ def display_sensor_graph_with_checkboxes(
                 mode="lines",
                 name="Avg. 4 previous visits",
                 line=dict(width=2, dash="dash", color=ACCENT_COLOR),
-            )
+            ),
+            row=1,
+            col=1,
         )
 
+    # Row 2: Variation bars (sparkline)
     if show_pct_change and "pct_change" in df.columns:
         colors = [SUCCESS_COLOR if x >= 0 else DANGER_COLOR for x in df["pct_change"]]
         fig.add_trace(
@@ -281,29 +304,24 @@ def display_sensor_graph_with_checkboxes(
                 x=df["date"],
                 y=df["pct_change"],
                 name="Variation (%)",
-                yaxis="y2",
-                opacity=0.5,
                 marker=dict(color=colors),
-            )
+                opacity=0.6,
+                showlegend=True,
+            ),
+            row=2,
+            col=1,
         )
-        fig.update_layout(
-            yaxis2=dict(
-                title="Variation (%)",
-                overlaying="y",
-                side="right",
-                showgrid=False,
-            )
-        )
+
+    fig.update_xaxes(title_text="Date", row=2, col=1)
+    fig.update_yaxes(title_text="Daily visitors", row=1, col=1)
+    fig.update_yaxes(title_text="Variation (%)", row=2, col=1)
 
     fig.update_layout(
         title=f"Daily traffic - {agency_n} (sensor {counter_i})",
-        xaxis_title="Date",
-        yaxis_title="Daily visitors",
-        legend_title="Show/Hide",
         template=PLOTLY_TEMPLATE,
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
-        height=600,
+        height=700,
         plot_bgcolor="white",
         paper_bgcolor="white",
         font=dict(color=TEXT_COLOR),
@@ -320,7 +338,7 @@ def display_comparison_graph_with_checkboxes(
     """Display multi-agency comparison with toggleable threshold bands and visual alerts."""
     st.subheader("Variables to display (for all agencies)")
     show_daily = st.checkbox("Daily visitors", value=True)
-    show_prev_avg = st.checkbox("Avg. 4 previous same days", value=False)
+    show_prev_avg = st.checkbox("Avg. 4 similar previous days", value=False)
     show_pct_change = st.checkbox("Variation (%)", value=False)
 
     # Threshold band toggles
@@ -341,6 +359,8 @@ def display_comparison_graph_with_checkboxes(
         st.warning("No data available for the selected agencies and time period.")
         return
 
+    from plotly.subplots import make_subplots
+
     # Modern color palette
     color_palette = ["#2E86AB", "#A23B72", "#F18F01", "#C73E1D", "#6A994E", "#BC4B51"]
     agency_colors = {
@@ -348,7 +368,14 @@ def display_comparison_graph_with_checkboxes(
         for i, agency in enumerate(agencies)
     }
 
-    fig = go.Figure()
+    # Create subplots: main chart + variation chart below
+    fig = make_subplots(
+        rows=2,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.12,
+        row_heights=[0.7, 0.3],
+    )
 
     for agency in agencies:
         df_ag = df[df["agency_name"] == agency]
@@ -367,7 +394,9 @@ def display_comparison_graph_with_checkboxes(
                         dash="solid",
                         shape="spline",
                     ),
-                )
+                ),
+                row=1,
+                col=1,
             )
 
         if show_prev_avg and "prev_avg_4_visits" in df_ag.columns:
@@ -379,7 +408,9 @@ def display_comparison_graph_with_checkboxes(
                     name=f"{agency} - Avg. 4 previous visits",
                     line=dict(color=color, width=2, dash="dash"),
                     opacity=0.7,
-                )
+                ),
+                row=1,
+                col=1,
             )
 
         if show_pct_change and "pct_change" in df_ag.columns:
@@ -391,14 +422,15 @@ def display_comparison_graph_with_checkboxes(
                         x=df_pos["date"],
                         y=df_pos["pct_change"],
                         name=f"{agency} - Variation (+%)",
-                        yaxis="y2",
                         marker=dict(
                             color=color,
                             opacity=0.7,
                         ),
                         offsetgroup=agency,
                         showlegend=False,
-                    )
+                    ),
+                    row=2,
+                    col=1,
                 )
 
             # Negative variations
@@ -409,17 +441,18 @@ def display_comparison_graph_with_checkboxes(
                         x=df_neg["date"],
                         y=df_neg["pct_change"],
                         name=f"{agency} - Variation (-%)",
-                        yaxis="y2",
                         marker=dict(
                             color=color,
                             opacity=0.3,
                         ),
                         offsetgroup=agency,
                         showlegend=False,
-                    )
+                    ),
+                    row=2,
+                    col=1,
                 )
 
-    # Threshold bands for all agencies
+    # Threshold bands for all agencies (row 1 only)
     if show_daily and rel_threshold is not None:
         threshold_lines_added = {"upper": False, "lower": False}
 
@@ -449,7 +482,9 @@ def display_comparison_graph_with_checkboxes(
                         line=dict(width=1, dash="dot", color=WARNING_COLOR),
                         opacity=0.5,
                         showlegend=show_upper_legend,
-                    )
+                    ),
+                    row=1,
+                    col=1,
                 )
                 threshold_lines_added["upper"] = True
 
@@ -467,7 +502,9 @@ def display_comparison_graph_with_checkboxes(
                             name=f"⚠️ {agency} (above)",
                             marker=dict(size=10, color="#FFD700", symbol="diamond"),
                             showlegend=False,
-                        )
+                        ),
+                        row=1,
+                        col=1,
                     )
 
             # Lower threshold line (show only once in legend)
@@ -482,7 +519,9 @@ def display_comparison_graph_with_checkboxes(
                         line=dict(width=1, dash="dot", color=WARNING_COLOR),
                         opacity=0.5,
                         showlegend=show_lower_legend,
-                    )
+                    ),
+                    row=1,
+                    col=1,
                 )
                 threshold_lines_added["lower"] = True
 
@@ -497,37 +536,33 @@ def display_comparison_graph_with_checkboxes(
                             x=df_below["date"],
                             y=df_below["daily_visitor_count"],
                             mode="markers",
-                            name=f"⚠️ {agency} (below threshold)",
+                            name=f"⚠️ {agency} (below)",
                             marker=dict(size=10, color="#FFD700", symbol="diamond"),
                             showlegend=False,
-                        )
+                        ),
+                        row=1,
+                        col=1,
                     )
 
-    if show_pct_change:
-        fig.update_layout(
-            yaxis2=dict(
-                title="Variation (%)",
-                overlaying="y",
-                side="right",
-                showgrid=False,
-            )
-        )
-
+    # Update layout for bar grouping
     fig.update_layout(
         barmode="group",
         bargap=0.4,
         bargroupgap=0.2,
     )
 
+    # Axes labels
+    fig.update_xaxes(title_text="Date", row=2, col=1)
+    fig.update_yaxes(title_text="Daily visitors", row=1, col=1)
+    fig.update_yaxes(title_text="Variation (%)", row=2, col=1)
+
     fig.update_layout(
         title="Daily traffic comparison between agencies",
-        xaxis_title="Date",
-        yaxis_title="Value",
         legend_title="Agency / Variable",
         template=PLOTLY_TEMPLATE,
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
-        height=600,
+        height=700,
         plot_bgcolor="white",
         paper_bgcolor="white",
     )
@@ -779,55 +814,71 @@ with st.sidebar:
             label_visibility="collapsed",
         )
 
-        with st.expander("Select months", expanded=False):
-            months = list(calendar.month_name)[1:]
+    with st.expander("Select months", expanded=False):
+        months = list(calendar.month_name)[1:]
 
-            selected_months = st.multiselect(
-                "Months:",
-                months,
-                key="selected_months",
-                default=st.session_state.get("selected_months", []),
-            )
-
-            # If months selected, clear weeks
-            if selected_months and st.session_state.get("selected_weeks"):
+        def on_months_change():
+            """Clear weeks when months are selected."""
+            if st.session_state.selected_months and st.session_state.get(
+                "selected_weeks"
+            ):
                 st.session_state.selected_weeks = []
-                st.rerun()
 
-        with st.expander("Or select week numbers", expanded=False):
-            week_numbers = list(range(1, 54))
+        selected_months = st.multiselect(
+            "Months:",
+            months,
+            key="selected_months",
+            default=st.session_state.get("selected_months", []),
+            on_change=on_months_change,
+        )
 
-            selected_weeks = st.multiselect(
-                "Week numbers:",
-                week_numbers,
-                key="selected_weeks",
-                default=st.session_state.get("selected_weeks", []),
-            )
+    with st.expander("Select week numbers", expanded=False):
+        week_numbers = list(range(1, 54))
 
-            # If weeks selected, clear months
-            if selected_weeks and st.session_state.get("selected_months"):
+        def on_weeks_change():
+            """Clear months when weeks are selected."""
+            if st.session_state.selected_weeks and st.session_state.get(
+                "selected_months"
+            ):
                 st.session_state.selected_months = []
-                st.rerun()
 
-        with st.expander("Or use a custom date range", expanded=False):
-            min_year = min(selected_years) if selected_years else 2000
-            max_year = max(selected_years) if selected_years else datetime.today().year
-            min_date = date(min_year, 1, 1)
-            max_date = date(max_year, 12, 31)
-            start_date = st.date_input(
-                "Start Date",
-                value=min_date,
-                min_value=min_date,
-                max_value=max_date,
-                format="YYYY-MM-DD",
-            )
-            end_date = st.date_input(
-                "End Date",
-                value=max_date,
-                min_value=min_date,
-                max_value=max_date,
-                format="YYYY-MM-DD",
-            )
+        selected_weeks = st.multiselect(
+            "Week numbers:",
+            week_numbers,
+            key="selected_weeks",
+            default=st.session_state.get("selected_weeks", []),
+            on_change=on_weeks_change,
+        )
+
+    with st.expander("Use a custom date range", expanded=False):
+        min_year = min(selected_years) if selected_years else 2000
+        max_year = max(selected_years) if selected_years else datetime.today().year
+        min_date = date(min_year, 1, 1)
+        max_date = date(max_year, 12, 31)
+
+        def on_date_change():
+            """Clear months and weeks when custom date range is set."""
+            if st.session_state.get("selected_months"):
+                st.session_state.selected_months = []
+            if st.session_state.get("selected_weeks"):
+                st.session_state.selected_weeks = []
+
+        start_date = st.date_input(
+            "Start Date",
+            value=min_date,
+            min_value=min_date,
+            max_value=max_date,
+            format="YYYY-MM-DD",
+            on_change=on_date_change,
+        )
+        end_date = st.date_input(
+            "End Date",
+            value=max_date,
+            min_value=min_date,
+            max_value=max_date,
+            format="YYYY-MM-DD",
+            on_change=on_date_change,
+        )
 
     st.title("⚠️ Alerts")
     rel_threshold_pct = st.slider(
