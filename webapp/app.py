@@ -154,27 +154,114 @@ def display_sensor_dataframe(df: pd.DataFrame) -> None:
 def display_sensor_graph_with_checkboxes(
     df: pd.DataFrame,
     agency_n: str,
-    counter_i: int,  # Explicit types
+    counter_i: int,
+    rel_threshold: float | None = None,
+    rel_threshold_pct: int | None = None,
 ) -> None:
-    """Display a graph for a single sensor with toggleable series."""
-    st.subheader("Variables à afficher")
-    show_daily = st.checkbox("Visiteurs quotidiens", value=True)
-    show_prev_avg = st.checkbox("Moy. 4 mêmes jours précédents", value=False)
+    """Display a graph for a single sensor with toggleable series and threshold bands."""
+    st.subheader("Variables to display")
+    show_daily = st.checkbox("Daily visitors", value=True)
+    show_prev_avg = st.checkbox("Avg. 4 previous same days", value=False)
     show_pct_change = st.checkbox("Variation (%)", value=False)
+
+    # Threshold band toggles
+    if rel_threshold is not None and rel_threshold_pct is not None:
+        show_upper_threshold = st.checkbox(
+            f"Upper threshold (+{rel_threshold_pct}%)",
+            value=True,
+        )
+        show_lower_threshold = st.checkbox(
+            f"Lower threshold (-{rel_threshold_pct}%)",
+            value=True,
+        )
+    else:
+        show_upper_threshold = False
+        show_lower_threshold = False
 
     fig = go.Figure()
 
+    # Daily visitor count
     if show_daily and "daily_visitor_count" in df.columns:
         fig.add_trace(
             go.Scatter(
                 x=df["date"],
                 y=df["daily_visitor_count"],
                 mode="lines+markers",
-                name="Visiteurs quotidiens",
+                name="Daily visitors",
                 line=dict(width=3, shape="spline", color=PRIMARY_COLOR),
                 marker=dict(size=6, color=PRIMARY_COLOR),
             )
         )
+
+        # Threshold band visualization
+        if rel_threshold is not None and "prev_avg_4_visits" in df.columns:
+            df_threshold = df[df["prev_avg_4_visits"] > 0].copy()
+            df_threshold["upper_threshold"] = (
+                df_threshold["prev_avg_4_visits"] * rel_threshold
+            )
+            df_threshold["lower_threshold"] = df_threshold["prev_avg_4_visits"] * (
+                2 - rel_threshold
+            )
+
+            # Upper threshold line
+            if show_upper_threshold:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_threshold["date"],
+                        y=df_threshold["upper_threshold"],
+                        mode="lines",
+                        name=f"Upper threshold (+{rel_threshold_pct}%)",
+                        line=dict(width=2, dash="dot", color=WARNING_COLOR),
+                        opacity=0.6,
+                    )
+                )
+
+                # Yellow markers when above upper threshold
+                df_above = df_threshold[
+                    df_threshold["daily_visitor_count"]
+                    > df_threshold["upper_threshold"]
+                ].copy()
+                if not df_above.empty:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df_above["date"],
+                            y=df_above["daily_visitor_count"],
+                            mode="markers",
+                            name="⚠️ Above threshold",
+                            marker=dict(size=10, color="#FFD700", symbol="diamond"),
+                            showlegend=True,
+                        )
+                    )
+
+            # Lower threshold line
+            if show_lower_threshold:
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_threshold["date"],
+                        y=df_threshold["lower_threshold"],
+                        mode="lines",
+                        name=f"Lower threshold (-{rel_threshold_pct}%)",
+                        line=dict(width=2, dash="dot", color=WARNING_COLOR),
+                        opacity=0.6,
+                    )
+                )
+
+                # Yellow markers when below lower threshold
+                df_below = df_threshold[
+                    df_threshold["daily_visitor_count"]
+                    < df_threshold["lower_threshold"]
+                ].copy()
+                if not df_below.empty:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df_below["date"],
+                            y=df_below["daily_visitor_count"],
+                            mode="markers",
+                            name="⚠️ Below threshold",
+                            marker=dict(size=10, color="#FFD700", symbol="diamond"),
+                            showlegend=True,
+                        )
+                    )
 
     if show_prev_avg and "prev_avg_4_visits" in df.columns:
         fig.add_trace(
@@ -182,7 +269,7 @@ def display_sensor_graph_with_checkboxes(
                 x=df["date"],
                 y=df["prev_avg_4_visits"],
                 mode="lines",
-                name="Moy. 4 visites précédentes",
+                name="Avg. 4 previous visits",
                 line=dict(width=2, dash="dash", color=ACCENT_COLOR),
             )
         )
@@ -209,10 +296,10 @@ def display_sensor_graph_with_checkboxes(
         )
 
     fig.update_layout(
-        title=f"Trafic journalier - {agency_n} (capteur {counter_i})",
+        title=f"Daily traffic - {agency_n} (sensor {counter_i})",
         xaxis_title="Date",
-        yaxis_title="Visiteurs quotidiens",
-        legend_title="Afficher/Masquer",
+        yaxis_title="Daily visitors",
+        legend_title="Show/Hide",
         template=PLOTLY_TEMPLATE,
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
@@ -225,12 +312,30 @@ def display_sensor_graph_with_checkboxes(
 
 
 def display_comparison_graph_with_checkboxes(
-    df: pd.DataFrame, agencies: list[str]
+    df: pd.DataFrame,
+    agencies: list[str],
+    rel_threshold: float | None = None,
+    rel_threshold_pct: int | None = None,
 ) -> None:
-    st.subheader("Variables à afficher (pour toutes les agences)")
-    show_daily = st.checkbox("Visiteurs quotidiens", value=True)
-    show_prev_avg = st.checkbox("Moy. 4 mêmes jours précédents", value=False)
+    """Display multi-agency comparison with toggleable threshold bands and visual alerts."""
+    st.subheader("Variables to display (for all agencies)")
+    show_daily = st.checkbox("Daily visitors", value=True)
+    show_prev_avg = st.checkbox("Avg. 4 previous same days", value=False)
     show_pct_change = st.checkbox("Variation (%)", value=False)
+
+    # Threshold band toggles
+    if rel_threshold is not None and rel_threshold_pct is not None:
+        show_upper_threshold = st.checkbox(
+            f"Upper threshold (+{rel_threshold_pct}%)",
+            value=True,
+        )
+        show_lower_threshold = st.checkbox(
+            f"Lower threshold (-{rel_threshold_pct}%)",
+            value=True,
+        )
+    else:
+        show_upper_threshold = False
+        show_lower_threshold = False
 
     if df.empty:
         st.warning("No data available for the selected agencies and time period.")
@@ -255,7 +360,7 @@ def display_comparison_graph_with_checkboxes(
                     x=df_ag["date"],
                     y=df_ag["daily_visitor_count"],
                     mode="lines",
-                    name=f"{agency} - Visiteurs quotidiens",
+                    name=f"{agency} - Daily visitors",
                     line=dict(
                         color=color,
                         width=3,
@@ -271,32 +376,132 @@ def display_comparison_graph_with_checkboxes(
                     x=df_ag["date"],
                     y=df_ag["prev_avg_4_visits"],
                     mode="lines",
-                    name=f"{agency} - Moy. 4 visites précédentes",
+                    name=f"{agency} - Avg. 4 previous visits",
                     line=dict(color=color, width=2, dash="dash"),
                     opacity=0.7,
                 )
             )
 
         if show_pct_change and "pct_change" in df_ag.columns:
-            fig.add_trace(
-                go.Bar(
-                    x=df_ag["date"],
-                    y=df_ag["pct_change"],
-                    name=f"{agency} - Variation (%)",
-                    yaxis="y2",
-                    marker=dict(
-                        color=df_ag["pct_change"],
-                        colorscale="RdBu_r",
-                        cmin=-100,
-                        cmax=100,
-                        colorbar=dict(
-                            title="% change",
-                            xanchor="left",
+            # Positive variations
+            df_pos = df_ag[df_ag["pct_change"] >= 0]
+            if not df_pos.empty:
+                fig.add_trace(
+                    go.Bar(
+                        x=df_pos["date"],
+                        y=df_pos["pct_change"],
+                        name=f"{agency} - Variation (+%)",
+                        yaxis="y2",
+                        marker=dict(
+                            color=color,
+                            opacity=0.7,
                         ),
-                    ),
-                    opacity=0.6,
+                        offsetgroup=agency,
+                        showlegend=False,
+                    )
                 )
+
+            # Negative variations
+            df_neg = df_ag[df_ag["pct_change"] < 0]
+            if not df_neg.empty:
+                fig.add_trace(
+                    go.Bar(
+                        x=df_neg["date"],
+                        y=df_neg["pct_change"],
+                        name=f"{agency} - Variation (-%)",
+                        yaxis="y2",
+                        marker=dict(
+                            color=color,
+                            opacity=0.3,
+                        ),
+                        offsetgroup=agency,
+                        showlegend=False,
+                    )
+                )
+
+    # Threshold bands for all agencies
+    if show_daily and rel_threshold is not None:
+        threshold_lines_added = {"upper": False, "lower": False}
+
+        for agency in agencies:
+            df_ag = df[df["agency_name"] == agency]
+            df_threshold = df_ag[df_ag["prev_avg_4_visits"] > 0].copy()
+
+            if df_threshold.empty:
+                continue
+
+            df_threshold["upper_threshold"] = (
+                df_threshold["prev_avg_4_visits"] * rel_threshold
             )
+            df_threshold["lower_threshold"] = df_threshold["prev_avg_4_visits"] * (
+                2 - rel_threshold
+            )
+
+            # Upper threshold line (show only once in legend)
+            if show_upper_threshold:
+                show_upper_legend = not threshold_lines_added["upper"]
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_threshold["date"],
+                        y=df_threshold["upper_threshold"],
+                        mode="lines",
+                        name=f"Upper threshold (+{rel_threshold_pct}%)",
+                        line=dict(width=1, dash="dot", color=WARNING_COLOR),
+                        opacity=0.5,
+                        showlegend=show_upper_legend,
+                    )
+                )
+                threshold_lines_added["upper"] = True
+
+                # Alert markers when above upper threshold
+                df_above = df_threshold[
+                    df_threshold["daily_visitor_count"]
+                    > df_threshold["upper_threshold"]
+                ].copy()
+                if not df_above.empty:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df_above["date"],
+                            y=df_above["daily_visitor_count"],
+                            mode="markers",
+                            name=f"⚠️ {agency} (above)",
+                            marker=dict(size=10, color="#FFD700", symbol="diamond"),
+                            showlegend=False,
+                        )
+                    )
+
+            # Lower threshold line (show only once in legend)
+            if show_lower_threshold:
+                show_lower_legend = not threshold_lines_added["lower"]
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_threshold["date"],
+                        y=df_threshold["lower_threshold"],
+                        mode="lines",
+                        name=f"Lower threshold (-{rel_threshold_pct}%)",
+                        line=dict(width=1, dash="dot", color=WARNING_COLOR),
+                        opacity=0.5,
+                        showlegend=show_lower_legend,
+                    )
+                )
+                threshold_lines_added["lower"] = True
+
+                # Alert markers when below lower threshold
+                df_below = df_threshold[
+                    df_threshold["daily_visitor_count"]
+                    < df_threshold["lower_threshold"]
+                ].copy()
+                if not df_below.empty:
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df_below["date"],
+                            y=df_below["daily_visitor_count"],
+                            mode="markers",
+                            name=f"⚠️ {agency} (below threshold)",
+                            marker=dict(size=10, color="#FFD700", symbol="diamond"),
+                            showlegend=False,
+                        )
+                    )
 
     if show_pct_change:
         fig.update_layout(
@@ -309,10 +514,16 @@ def display_comparison_graph_with_checkboxes(
         )
 
     fig.update_layout(
-        title="Comparaison du trafic journalier entre agences",
+        barmode="group",
+        bargap=0.4,
+        bargroupgap=0.2,
+    )
+
+    fig.update_layout(
+        title="Daily traffic comparison between agencies",
         xaxis_title="Date",
-        yaxis_title="Valeur",
-        legend_title="Agence / Variable",
+        yaxis_title="Value",
+        legend_title="Agency / Variable",
         template=PLOTLY_TEMPLATE,
         hovermode="x unified",
         margin=dict(l=40, r=40, t=60, b=40),
@@ -570,33 +781,33 @@ with st.sidebar:
 
         with st.expander("Select months", expanded=False):
             months = list(calendar.month_name)[1:]
-            if "selected_months" not in st.session_state:
-                st.session_state.selected_months = []
-            if "selected_weeks" not in st.session_state:
+
+            selected_months = st.multiselect(
+                "Months:",
+                months,
+                key="selected_months",
+                default=st.session_state.get("selected_months", []),
+            )
+
+            # If months selected, clear weeks
+            if selected_months and st.session_state.get("selected_weeks"):
                 st.session_state.selected_weeks = []
-            if not st.session_state.selected_weeks:
-                selected_months = st.multiselect(
-                    "Months:", months, default=st.session_state.selected_months
-                )
-                if selected_months:
-                    st.session_state.selected_months = selected_months
-                    st.session_state.selected_weeks = []
-            else:
-                selected_months = []
+                st.rerun()
 
         with st.expander("Or select week numbers", expanded=False):
             week_numbers = list(range(1, 54))
-            if not st.session_state.selected_months:
-                selected_weeks = st.multiselect(
-                    "Week numbers:",
-                    week_numbers,
-                    default=st.session_state.selected_weeks,
-                )
-                if selected_weeks:
-                    st.session_state.selected_weeks = selected_weeks
-                    st.session_state.selected_months = []
-            else:
-                selected_weeks = []
+
+            selected_weeks = st.multiselect(
+                "Week numbers:",
+                week_numbers,
+                key="selected_weeks",
+                default=st.session_state.get("selected_weeks", []),
+            )
+
+            # If weeks selected, clear months
+            if selected_weeks and st.session_state.get("selected_months"):
+                st.session_state.selected_months = []
+                st.rerun()
 
         with st.expander("Or use a custom date range", expanded=False):
             min_year = min(selected_years) if selected_years else 2000
@@ -618,18 +829,151 @@ with st.sidebar:
                 format="YYYY-MM-DD",
             )
 
+    st.title("⚠️ Alerts")
+    rel_threshold_pct = st.slider(
+        "Alert: acceptable deviation vs average (%)",
+        min_value=0,
+        max_value=100,
+        value=20,  # 20% above/below
+        step=5,
+        help="Alert if footfall exceeds ±X% of the 4-day average.",
+    )
+    # Convert percentage to multiplier for calculations
+    rel_threshold = 1 + (rel_threshold_pct / 100)
 
 # --------------------------------------------------------------------------------------
 # Main logic
 # --------------------------------------------------------------------------------------
+
+
+def show_relative_alerts(
+    df: pd.DataFrame,
+    rel_threshold: float,
+    title: str = "Alerts: footfall vs 4-day average",
+) -> None:
+    """Show Streamlit alerts for days where daily_visitor_count exceeds
+    rel_threshold × prev_avg_4_visits."""
+    if df.empty:
+        return
+    if "daily_visitor_count" not in df.columns or "prev_avg_4_visits" not in df.columns:
+        return
+
+    alert_df = df[
+        (df["prev_avg_4_visits"] > 0)
+        & (df["daily_visitor_count"] > rel_threshold * df["prev_avg_4_visits"])
+    ].copy()
+
+    if alert_df.empty:
+        return
+
+    st.subheader(title)
+    st.warning(
+        f"{len(alert_df)} day(s) exceed "
+        f"{rel_threshold:.2f}× the 4-day average for similar days."
+    )
+
+    summary = (
+        alert_df[["date", "agency_name", "daily_visitor_count", "prev_avg_4_visits"]]
+        .sort_values("daily_visitor_count", ascending=False)
+        .head(10)
+    )
+    summary["ratio"] = (
+        summary["daily_visitor_count"] / summary["prev_avg_4_visits"]
+    ).round(2)
+    st.dataframe(summary, use_container_width=True)
+
+
+def filter_dataframe_by_time(
+    df: pd.DataFrame,
+    start_date: date,
+    end_date: date,
+    selected_years: list[int],
+) -> pd.DataFrame:
+    """Apply basic date/year filters."""
+    if df.empty or "date" not in df.columns:
+        return df
+    df = df.copy()
+    df["date"] = pd.to_datetime(df["date"])
+    mask = (
+        (df["date"] >= pd.to_datetime(start_date))
+        & (df["date"] <= pd.to_datetime(end_date))
+        & (df["date"].dt.year.isin(selected_years))  # type: ignore[reportAttributeAccessIssue]
+    )
+    return df[mask]
+
+
+def filter_dataframe_by_months_weeks(df: pd.DataFrame) -> pd.DataFrame:
+    """Apply optional month/week filters based on session_state."""
+    if df.empty or "date" not in df.columns:
+        return df
+    df = df.copy()
+
+    if "selected_months" in st.session_state and st.session_state.selected_months:
+        selected_month_nums = [
+            list(calendar.month_name).index(m) for m in st.session_state.selected_months
+        ]
+        df = df[df["date"].dt.month.isin(selected_month_nums)]
+
+    if "selected_weeks" in st.session_state and st.session_state.selected_weeks:
+        df = df[
+            df["date"].dt.isocalendar()["week"].isin(st.session_state.selected_weeks)
+        ]
+    return df
+
+
+def show_graph_or_data(
+    df: pd.DataFrame,
+    mode: str,
+    agency: str | None,
+    sensor_id: int | None,
+    selected_agencies: list[str],
+    rel_threshold: float | None = None,
+    rel_threshold_pct: int | None = None,
+) -> None:
+    """Handle Graph/Data toggle and call appropriate display helper."""
+    if "show_data" not in st.session_state:
+        st.session_state.show_data = False
+
+    col1, col2 = st.columns([1, 1])
+    with col1:
+        if st.button("📊 Graph"):
+            st.session_state.show_data = False
+    with col2:
+        if st.button("📋 Data"):
+            st.session_state.show_data = True
+
+    if df.empty:
+        st.warning("No data available for the selected agencies and time period.")
+        return
+
+    if not st.session_state.show_data:
+        if mode == "single_sensor" and agency is not None and sensor_id is not None:
+            display_sensor_graph_with_checkboxes(
+                df, agency, sensor_id, rel_threshold, rel_threshold_pct
+            )
+        elif mode == "single_agency" and agency is not None:
+            display_sensor_graph_with_checkboxes(
+                df, agency, 0, rel_threshold, rel_threshold_pct
+            )
+        else:
+            display_comparison_graph_with_checkboxes(
+                df, selected_agencies, rel_threshold, rel_threshold_pct
+            )
+    else:
+        display_sensor_dataframe(df)
+
+
+def is_exceeding(dv: float, pa: float, rel_threshold: float) -> bool:
+    return pa > 0 and dv > rel_threshold * pa
+
 
 if not selected_agencies:
     st.info("Please select at least one agency to compare.")
 elif not selected_years:
     st.info("Please select at least one year.")
 else:
-    # Data loading inside mode branches for scope safety
     if len(selected_agencies) == 1:
+        # Single-agency path
         agency = selected_agencies[0]
 
         if selected_sensor and selected_sensor != "All sensors":
@@ -638,106 +982,56 @@ else:
                 agency, sensor_id, PARQUET_FILE, (start_date, end_date)
             )
             df["agency_name"] = agency
+            mode = "single_sensor"
         else:
             df = get_agency_footfall_all_sensors(
                 [agency], PARQUET_FILE, (start_date, end_date)
             )
-            sensor_id = 0  # "All sensors" fallback for display
+            sensor_id = 0  # "All sensors" fallback
+            mode = "single_agency"
 
-        # Filter immediately after loading (agency/sensor_id in scope)
-        if not df.empty and "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"])
-            mask = (
-                (df["date"] >= pd.to_datetime(start_date))
-                & (df["date"] <= pd.to_datetime(end_date))
-                & (df["date"].dt.year.isin(selected_years))  # type: ignore[reportAttributeAccessIssue]
-            )
-            df = df[mask].copy()
+        # Apply common filters
+        df = filter_dataframe_by_time(df, start_date, end_date, selected_years)
+        df = filter_dataframe_by_months_weeks(df)
 
-            if (
-                "selected_months" in st.session_state
-                and st.session_state.selected_months
-            ):
-                selected_month_nums = [
-                    list(calendar.month_name).index(m)
-                    for m in st.session_state.selected_months
-                ]
-                df = df[df["date"].dt.month.isin(selected_month_nums)]
+        # Alerts
+        show_relative_alerts(df, rel_threshold)
 
-            if "selected_weeks" in st.session_state and st.session_state.selected_weeks:
-                df = df[
-                    df["date"]
-                    .dt.isocalendar()["week"]
-                    .isin(st.session_state.selected_weeks)
-                ]
-
-        # Display for single agency (agency/sensor_id guaranteed defined)
-        if "show_data" not in st.session_state:
-            st.session_state.show_data = False
-
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("📊 Graph"):
-                st.session_state.show_data = False
-        with col2:
-            if st.button("📋 Data"):
-                st.session_state.show_data = True
-
-        if df.empty:
-            st.warning("No data available for the selected agencies and time period.")
-        else:
-            if not st.session_state.show_data:
-                display_sensor_graph_with_checkboxes(df, agency, sensor_id)
-            else:
-                display_sensor_dataframe(df)
+        # Graph/Data toggle and display
+        show_graph_or_data(
+            df,
+            mode=mode,
+            agency=agency,
+            sensor_id=sensor_id,
+            selected_agencies=selected_agencies,
+            rel_threshold=rel_threshold,
+            rel_threshold_pct=rel_threshold_pct,
+        )
 
     else:
         # Multi-agency path
+        agency = None
+        sensor_id = None
+        mode = "multi_agency"
+
         df = get_agency_footfall_all_sensors(
             selected_agencies, PARQUET_FILE, (start_date, end_date)
         )
 
-        if not df.empty and "date" in df.columns:
-            df["date"] = pd.to_datetime(df["date"])
-            mask = (
-                (df["date"] >= pd.to_datetime(start_date))
-                & (df["date"] <= pd.to_datetime(end_date))
-                & (df["date"].dt.year.isin(selected_years))  # type: ignore[reportAttributeAccessIssue]
-            )
-            df = df[mask].copy()
+        # Apply common filters
+        df = filter_dataframe_by_time(df, start_date, end_date, selected_years)
+        df = filter_dataframe_by_months_weeks(df)
 
-            if (
-                "selected_months" in st.session_state
-                and st.session_state.selected_months
-            ):
-                selected_month_nums = [
-                    list(calendar.month_name).index(m)
-                    for m in st.session_state.selected_months
-                ]
-                df = df[df["date"].dt.month.isin(selected_month_nums)]
+        # Alerts
+        show_relative_alerts(df, rel_threshold)
 
-            if "selected_weeks" in st.session_state and st.session_state.selected_weeks:
-                df = df[
-                    df["date"]
-                    .dt.isocalendar()["week"]
-                    .isin(st.session_state.selected_weeks)
-                ]
-
-        if "show_data" not in st.session_state:
-            st.session_state.show_data = False
-
-        col1, col2 = st.columns([1, 1])
-        with col1:
-            if st.button("📊 Graph"):
-                st.session_state.show_data = False
-        with col2:
-            if st.button("📋 Data"):
-                st.session_state.show_data = True
-
-        if df.empty:
-            st.warning("No data available for the selected agencies and time period.")
-        else:
-            if not st.session_state.show_data:
-                display_comparison_graph_with_checkboxes(df, selected_agencies)
-            else:
-                display_sensor_dataframe(df)
+        # Graph/Data toggle and display
+        show_graph_or_data(
+            df,
+            mode=mode,
+            agency=agency,
+            sensor_id=sensor_id,
+            selected_agencies=selected_agencies,
+            rel_threshold=rel_threshold,
+            rel_threshold_pct=rel_threshold_pct,
+        )
