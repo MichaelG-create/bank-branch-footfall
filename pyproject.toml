@@ -14,7 +14,7 @@ dependencies = [
     "uvicorn[standard]",
     "pandas",
     "requests",
-    "apache-airflow>=3.1.5",
+    "apache-airflow>=3.1.6",
     "pyspark",
     "duckdb",
     "streamlit",
